@@ -27,7 +27,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // Role
-    Route::prefix('roles')->name('roles.')->middleware('can:' . PermissionEnum::VIEW_ROLE->value)->group(function () {
+    Route::prefix('management-role')->name('roles.')->middleware('can:' . PermissionEnum::VIEW_ROLE->value)->group(function () {
         Route::get('/', [RoleController::class, 'index'])->name('index');
         Route::post('/', [RoleController::class, 'store'])->name('store');
         Route::patch('/{role}', [RoleController::class, 'update'])->name('update');

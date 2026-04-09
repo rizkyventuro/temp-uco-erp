@@ -1,73 +1,152 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
-import { Settings, Shield } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
-import IconDashboard from '@/components/icons/menu/IconDashboard.vue';
-import IconManagementUser from '@/components/icons/menu/iconManagementUser.vue';
-import NavMain from '@/components/NavMain.vue';
 import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarHeader,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
+    LayoutDashboard, Database, PackageOpen, Send,
+    ArrowLeftRight, Layers, FileMinus, TrendingUp,
+    Briefcase, BarChart2, Settings, ChevronDown, LogOut,
+} from 'lucide-vue-next';
+import { computed, ref } from 'vue';
+import {
+    AlertDialog, AlertDialogAction, AlertDialogCancel,
+    AlertDialogContent, AlertDialogDescription,
+    AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+    Collapsible, CollapsibleContent, CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
+    Sidebar, SidebarContent, SidebarFooter, SidebarHeader,
+    SidebarMenu, SidebarMenuButton, SidebarMenuItem,
+    SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
+import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { usePermission } from '@/composables/usePermission';
 import { dashboard, logout } from '@/routes';
-import { type NavItem } from '@/types';
 import AppLogo from './AppLogo.vue';
-import { PermissionEnum } from '@/enums/PermissionEnum';
+import AppLogoIcon from './AppLogoIcon.vue';
+import { useSidebar } from '@/components/ui/sidebar';
 
 const { can } = usePermission();
-
-
-const isMoreOpen = ref(false);
+const { isCurrentUrl } = useCurrentUrl();
+const { state } = useSidebar();
 
 const isLogoutOpen = ref(false);
+const isMasterDataOpen = ref(false);
 
 const handleLogout = () => {
-
     router.flushAll();
-    // // kalau perlu POST ke logout route:
     router.post(logout());
 };
 
-const allNavItems: (NavItem & { permission?: PermissionEnum })[] = [
-    { title: 'Dashboard', href: dashboard(), icon: IconDashboard },
-    { title: 'Role', href: '/roles', icon: Shield, permission: PermissionEnum.VIEW_ROLE },
-    { title: 'Manajemen User', href: '/management-user', icon: IconManagementUser, permission: PermissionEnum.VIEW_USER },
-    { title: 'Pengaturan', href: '/settings', icon:  Settings},
+const masterDataItems = [
+    { title: 'Supplier', href: '/master-data/supplier' },
+    { title: 'Buyer (Customer)', href: '/master-data/buyer' },
+    { title: 'Gudang / Tank', href: '/master-data/gudang' },
 ];
 
-const mainNavItems = computed<NavItem[]>(() =>
-    allNavItems.filter(item => !item.permission || can(item.permission))
+const isMasterDataActive = computed(() =>
+    masterDataItems.some(item => isCurrentUrl(item.href)),
 );
+
+const mainMenuItems = [
+    { title: 'Barang Masuk', href: '/barang-masuk', icon: PackageOpen },
+    { title: 'Barang Keluar', href: '/barang-keluar', icon: Send },
+    { title: 'Transfer Stok', href: '/transfer-stok', icon: ArrowLeftRight },
+    { title: 'Stok / Opname', href: '/stok-opname', icon: Layers },
+    { title: 'Hutang (AP)', href: '/hutang', icon: FileMinus },
+    { title: 'Piutang (AR)', href: '/piutang', icon: TrendingUp },
+    { title: 'Kas / Bank', href: '/kas-bank', icon: Briefcase },
+    { title: 'Laporan', href: '/laporan', icon: BarChart2 },
+    { title: 'Management User', href: '/management-user', icon: BarChart2 },
+    { title: 'Management Role', href: '/management-role', icon: BarChart2 },
+    { title: 'Pengaturan', href: '/pengaturan', icon: Settings },
+];
+
+function activeClass(active: boolean) {
+    return active
+        ? 'bg-[#EBFFFA] text-[#007C95] hover:bg-[#EBFFFA] hover:text-[#007C95] font-semibold'
+        : 'text-[#101010] hover:bg-gray-50 hover:text-[#101010]';
+}
 </script>
 
 <template>
     <Sidebar collapsible="icon" variant="inset">
-        <SidebarHeader>
+
+        <!-- Logo -->
+        <SidebarHeader class="border-b border-gray-100 py-3 ">
             <SidebarMenu>
-                <SidebarMenuItem>
-                    <SidebarMenuButton size="lg" class="hover:bg-transparent" as-child>
-                        <Link :href="dashboard()">
-                            <AppLogo class="h-10"/>
+                <SidebarMenuItem class="flex justify-center">
+                    <SidebarMenuButton size="lg" as-child class="hover:bg-transparent active:bg-transparent">
+                        <Link :href="dashboard()" class="flex items-center">
+                            <AppLogoIcon v-if="state === 'collapsed'" class="size-7 w-auto" />
+                            <AppLogo v-else class="h-10 w-auto" />
                         </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>
         </SidebarHeader>
 
-        <SidebarContent>
-            <NavMain :items="mainNavItems" />
+        <!-- Navigation -->
+        <SidebarContent class="py-2">
+            <SidebarMenu class="gap-0.5 px-2">
+
+                <!-- Dashboard -->
+                <SidebarMenuItem>
+                    <SidebarMenuButton as-child tooltip="Dashboard" :class="activeClass(isCurrentUrl(dashboard()))">
+                        <Link :href="dashboard()">
+                            <LayoutDashboard class="size-4 shrink-0" />
+                            <span>Dashboard</span>
+                        </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                <!-- Master Data accordion -->
+                <SidebarMenuItem>
+                    <Collapsible v-model:open="isMasterDataOpen" class="group/collapsible">
+                        <CollapsibleTrigger as-child>
+                            <SidebarMenuButton tooltip="Master Data" :class="activeClass(isMasterDataActive)">
+                                <Database class="size-4 shrink-0" />
+                                <span>Master Data</span>
+                                <ChevronDown class="ml-auto size-4 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                            </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                            <SidebarMenuSub>
+                                <SidebarMenuSubItem v-for="sub in masterDataItems" :key="sub.href">
+                                    <SidebarMenuSubButton as-child :class="isCurrentUrl(sub.href) ? 'text-[#007C95] font-semibold bg-[#EBFFFA]' : 'text-[#101010]'">
+                                        <Link :href="sub.href">{{ sub.title }}</Link>
+                                    </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                            </SidebarMenuSub>
+                        </CollapsibleContent>
+                    </Collapsible>
+                </SidebarMenuItem>
+
+                <!-- Menu utama -->
+                <SidebarMenuItem v-for="item in mainMenuItems" :key="item.href">
+                    <SidebarMenuButton as-child :tooltip="item.title" :class="activeClass(isCurrentUrl(item.href))">
+                        <Link :href="item.href">
+                            <component :is="item.icon" class="size-4 shrink-0" />
+                            <span>{{ item.title }}</span>
+                        </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+
+            </SidebarMenu>
         </SidebarContent>
 
     </Sidebar>
-    <slot />
 
-
-
-
+    <AlertDialog v-model:open="isLogoutOpen">
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Keluar</AlertDialogTitle>
+                <AlertDialogDescription>Apakah Anda yakin ingin keluar dari aplikasi?</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Batal</AlertDialogCancel>
+                <AlertDialogAction class="bg-red-600 hover:bg-red-700" @click="handleLogout">Ya, Keluar</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
 </template>

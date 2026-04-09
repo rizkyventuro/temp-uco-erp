@@ -39,15 +39,11 @@ class ManagementUserController extends Controller
                 ]),
             ]);
 
-
-        // status 1 = menunggu verifikasi
-        $pendingCount = User::where('is_verified_by_admin', 1)->count();
-
         return Inertia::render('admin/managementUser/ListManagementUser', [
             'users'        => $users,
             'roles'        => Role::all(['id', 'name']),
             'filters'      => $request->only(['search', 'perPage', 'status']),
-            'pendingCount' => $pendingCount,
+            'pendingCount' => 0,
         ]);
     }
 

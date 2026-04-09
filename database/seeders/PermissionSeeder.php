@@ -110,10 +110,15 @@ class PermissionSeeder extends Seeder
         ];
 
         foreach ($defaultUsers as $userData) {
-            \App\Models\User::firstOrCreate(
+            $user = \App\Models\User::firstOrCreate(
                 ['email' => $userData['email']],
                 $userData
             );
+
+            // Assign role admin jika belum punya
+            if (!$user->hasRole('admin')) {
+                $user->assignRole('admin');
+            }
         }
 
         if ($this->command) {
