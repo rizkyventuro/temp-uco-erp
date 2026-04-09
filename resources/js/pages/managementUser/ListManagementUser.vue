@@ -5,11 +5,12 @@ import {
     Search,
     Pencil,
     Trash2,
-    ChevronLeft,
-    ChevronRight,
+    ChevronUp,
+    ChevronDown,
     Plus,
+    EllipsisVertical,
 } from 'lucide-vue-next';
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { toast } from 'vue-sonner';
 import { Vue3Lottie } from 'vue3-lottie';
 import emptyAnimation from '@/../../public/assets/animations/Pencarian Tidak Ditemukan.json';
@@ -24,7 +25,16 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import TableFilter from '@/components/TableFilter.vue';
+import type { FilterValues } from '@/components/TableFilter.vue';
+import TablePagination from '@/components/TablePagination.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { usePermission } from '@/composables/usePermission';
 import type { BreadcrumbItem } from '@/types';
@@ -58,8 +68,8 @@ interface PaginatedUsers {
 
 const props = defineProps<{
     users: PaginatedUsers;
-    filters: { search?: string; perPage?: number; status?: string };
-    pendingCount: number;
+    roles: string[];
+    filters: { search?: string; perPage?: number; status?: string; role?: string; sort?: string; direction?: 'asc' | 'desc' };
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -68,25 +78,80 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const searchQuery = ref(props.filters.search ?? '');
 const perPage = ref(props.filters.perPage ?? 10);
-const currentStatus = ref(props.filters.status ?? 'all');
+const sortColumn = ref(props.filters.sort ?? 'created_at');
+const sortDirection = ref<'asc' | 'desc'>(props.filters.direction ?? 'desc');
+
+const filterFields = computed(() => [
+    {
+        key: 'status',
+        label: 'Status',
+        type: 'select' as const,
+        options: [
+            { label: 'Aktif', value: 'active' },
+            { label: 'Non Aktif', value: 'inactive' },
+        ],
+    },
+    {
+        key: 'role',
+        label: 'Role',
+        type: 'select' as const,
+        options: props.roles.map((r) => ({ label: r, value: r })),
+    },
+]);
+
+const filterValues = ref<FilterValues>({
+    status: props.filters.status ?? undefined,
+    role: props.filters.role ?? undefined,
+});
+
+const buildParams = (extra: FilterValues = {}) => ({
+    search: searchQuery.value || undefined,
+    perPage: perPage.value,
+    sort: sortColumn.value,
+    direction: sortDirection.value,
+    ...extra,
+});
+
+const handleSort = (column: string) => {
+    if (sortColumn.value === column) {
+        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortColumn.value = column;
+        sortDirection.value = 'asc';
+    }
+    router.get('/management-user', buildParams(filterValues.value), {
+        preserveState: true,
+        replace: true,
+    });
+};
+
+const handleFilter = (values: FilterValues) => {
+    filterValues.value = values;
+    router.get('/management-user', buildParams(values), {
+        preserveState: true,
+        replace: true,
+    });
+};
+
+const handleFilterReset = () => {
+    filterValues.value = {};
+    router.get('/management-user', buildParams({}), {
+        preserveState: true,
+        replace: true,
+    });
+};
 
 // Delete state
 const isDeleteOpen = ref(false);
 const deletingUser = ref<User | null>(null);
 const isDeleting = ref(false);
 
-const buildParams = () => ({
-    search: searchQuery.value,
-    perPage: perPage.value,
-    status: currentStatus.value !== 'all' ? currentStatus.value : undefined,
-});
-
 let searchTimeout: ReturnType<typeof setTimeout>;
 watch(searchQuery, (val) => {
     clearTimeout(searchTimeout);
     if (val.length === 0 || val.length >= 3) {
         searchTimeout = setTimeout(() => {
-            router.get('/management-user', buildParams(), {
+            router.get('/management-user', buildParams(filterValues.value), {
                 preserveState: true,
                 replace: true,
             });
@@ -94,8 +159,8 @@ watch(searchQuery, (val) => {
     }
 });
 
-watch([perPage, currentStatus], () => {
-    router.get('/management-user', buildParams(), {
+watch(perPage, () => {
+    router.get('/management-user', buildParams(filterValues.value), {
         preserveState: true,
         replace: true,
     });
@@ -103,7 +168,7 @@ watch([perPage, currentStatus], () => {
 
 const goToPage = (url: string | null) => {
     if (!url) return;
-    router.get(url, buildParams(), { preserveState: true });
+    router.get(url, buildParams(filterValues.value), { preserveState: true });
 };
 
 const openDelete = (user: User) => {
@@ -140,152 +205,206 @@ const toggleStatus = (user: User) => {
 
 const getInitials = (name: string) =>
     name.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('');
+
+const roleBadgeClass = (roleName: string) => {
+    const map: Record<string, string> = {
+        Admin: 'bg-violet-50 text-violet-700',
+        Owner: 'bg-amber-50 text-amber-700',
+        Staff: 'bg-sky-50 text-sky-700',
+    };
+    return map[roleName] ?? 'bg-gray-100 text-gray-600';
+};
+
 </script>
 
 <template>
+
     <Head title="Manajemen User" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col items-center gap-6 p-6">
-            <div class="flex w-full max-w-5xl flex-col gap-6">
+        <div class="flex flex-col gap-6 p-4 pb-10 md:p-6">
 
-                <!-- Header -->
-                <div>
-                    <div class="flex items-center gap-2">
-                        <div class="flex h-8 w-8 items-center justify-center text-[#007C95]">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                                <circle cx="9" cy="7" r="4" />
-                                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                            </svg>
-                        </div>
-                        <h1 class="text-[18px] font-bold text-gray-900">Manajemen User</h1>
-                    </div>
-                    <p class="mt-0.5 text-[14px] text-gray-500">Kelola pengguna sistem</p>
+            <!-- Header -->
+            <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <!-- Title -->
+                <div class="flex-1 min-w-0">
+                    <h1 class="text-[24px] font-bold text-gray-900">
+                        Manajemen User
+                    </h1>
+                    <p class="mt-0.5 text-[16px] text-gray-500">
+                        Kelola pengguna sistem
+                    </p>
                 </div>
 
-                <!-- Tabs -->
-                <div class="flex border-b border-gray-200">
-                    <button @click="currentStatus = 'all'"
-                        :class="['px-4 py-2 text-sm font-medium transition-colors', currentStatus === 'all' ? 'border-b-2 border-[#007C95] text-[#007C95]' : 'text-gray-500 hover:text-gray-700']">
-                        Semua
-                    </button>
-                    <button @click="currentStatus = 'pending'"
-                        :class="['relative px-4 py-2 text-sm font-medium transition-colors', currentStatus === 'pending' ? 'border-b-2 border-[#007C95] text-[#007C95]' : 'text-gray-500 hover:text-gray-700']">
-                        Perlu Verifikasi
-                        <span v-if="pendingCount > 0"
-                            class="ml-1.5 inline-flex items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                            {{ pendingCount }}
-                        </span>
-                    </button>
+                <!-- Actions -->
+                <div class="flex w-full justify-end md:w-auto md:flex-shrink-0">
+                    <div class="flex flex-col gap-2 md:flex-row">
+                        <Button v-if="can(PermissionEnum.CREATE_USER)"
+                            class="flex w-fit items-center justify-center gap-1.5 rounded-lg bg-[#007C95] px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-[#006b80]"
+                            @click="router.get('/management-user/create')">
+                            <Plus class="size-4" />
+                            Tambah User
+                        </Button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Toolbar: Entries per page + Filter + Search -->
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-center gap-2">
+                    <select v-model="perPage"
+                        class="h-[45px] w-16 rounded-lg border border-gray-300 bg-white px-2 text-sm text-gray-700 focus:border-[#007C95] focus:ring-1 focus:ring-[#007C95] focus:outline-none">
+                        <option :value="1">1</option>
+                        <option :value="10">10</option>
+                        <option :value="25">25</option>
+                        <option :value="50">50</option>
+                        <option :value="100">100</option>
+                    </select>
+                    <span class="text-sm text-gray-500">Entri per halaman</span>
                 </div>
 
-                <!-- Search + Button -->
-                <div class="flex items-center gap-3">
-                    <div class="relative flex-1">
-                        <Search class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                        <input v-model="searchQuery" type="text" placeholder="Cari user berdasarkan nama atau email..."
-                            class="h-10 w-full rounded-lg border border-gray-200 bg-white py-2.5 pr-4 pl-10 text-sm placeholder-gray-400 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 focus:outline-none" />
+                <div class="flex items-center gap-2">
+                    <TableFilter :filters="filterFields" :model-value="filterValues" @update:model-value="handleFilter"
+                        @reset="handleFilterReset" />
+                    <div class="relative flex-1 sm:flex-none">
+                        <Search class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-gray-400" />
+                        <input v-model="searchQuery" type="text" placeholder="Cari user..."
+                            class="h-[45px] w-full rounded-lg border border-gray-300 bg-white py-2 pr-3 pl-9 text-sm placeholder-gray-400 focus:border-[#007C95] focus:ring-1 focus:ring-[#007C95] focus:outline-none sm:w-56" />
                     </div>
-                    <Button
-                        v-if="can(PermissionEnum.CREATE_USER)"
-                        class="shrink-0 gap-1.5 bg-[#007C95] hover:bg-[#006b80] text-white"
-                        @click="router.get('/management-user/create')"
-                    >
-                        <Plus class="size-4" />
-                        Tambah User
-                    </Button>
                 </div>
+            </div>
 
-                <!-- Table -->
-                <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-                    <div class="border-b border-gray-100 px-5 py-4">
-                        <h2 class="text-sm font-semibold text-gray-700">
-                            Daftar User
-                            <span class="font-normal text-gray-400">({{ users.total }})</span>
-                        </h2>
-                    </div>
-
+            <div>
+                <div class=" overflow-hidden rounded-xl  border-gray-200 bg-white ">
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm">
                             <thead>
-                                <tr class="border-b border-gray-100 bg-gray-50/60">
-                                    <th class="px-5 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-gray-500">Nama</th>
-                                    <th class="px-5 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-gray-500">Email</th>
-                                    <th class="px-5 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-gray-500">Role</th>
-                                    <th class="px-5 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-gray-500">Status</th>
-                                    <th class="px-5 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-gray-500">Aksi</th>
+                                <tr class="border-b border-gray-200 bg-[#F9F9F9]">
+                                    <th class="px-4 py-3 text-left">
+                                        <button
+                                            class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition"
+                                            :class="sortColumn === 'name' ? 'text-[#007C95]' : 'text-gray-500 hover:text-gray-700'"
+                                            @click="handleSort('name')">
+                                            Nama
+                                            <span class="flex flex-col">
+                                                <ChevronUp class="size-3 -mb-0.5"
+                                                    :class="sortColumn === 'name' && sortDirection === 'asc' ? 'text-[#007C95]' : 'text-gray-300'" />
+                                                <ChevronDown class="size-3 -mt-0.5"
+                                                    :class="sortColumn === 'name' && sortDirection === 'desc' ? 'text-[#007C95]' : 'text-gray-300'" />
+                                            </span>
+                                        </button>
+                                    </th>
+                                    <th class="px-4 py-3 text-left">
+                                        <button
+                                            class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition"
+                                            :class="sortColumn === 'email' ? 'text-[#007C95]' : 'text-gray-500 hover:text-gray-700'"
+                                            @click="handleSort('email')">
+                                            Email
+                                            <span class="flex flex-col">
+                                                <ChevronUp class="size-3 -mb-0.5"
+                                                    :class="sortColumn === 'email' && sortDirection === 'asc' ? 'text-[#007C95]' : 'text-gray-300'" />
+                                                <ChevronDown class="size-3 -mt-0.5"
+                                                    :class="sortColumn === 'email' && sortDirection === 'desc' ? 'text-[#007C95]' : 'text-gray-300'" />
+                                            </span>
+                                        </button>
+                                    </th>
+                                    <th class="px-4 py-3 text-left">
+                                        <span
+                                            class="text-xs font-semibold uppercase tracking-wider text-gray-500">Role</span>
+                                    </th>
+                                    <th class="px-4 py-3 text-left">
+                                        <span
+                                            class="text-xs font-semibold uppercase tracking-wider text-gray-500">Status</span>
+                                    </th>
+                                    <th class="px-4 py-3 text-left w-[50px]">
+                                        <span
+                                            class="text-xs font-semibold uppercase tracking-wider text-gray-500">Aksi</span>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
-                                <tr v-for="user in users.data" :key="user.id" class="transition hover:bg-gray-50/50">
-
+                                <tr v-for="user in users.data" :key="user.id" class="transition hover:bg-gray-50/60">
                                     <!-- Nama -->
-                                    <td class="px-5 py-3.5 whitespace-nowrap">
+                                    <td class="px-4 py-3 whitespace-nowrap">
                                         <div class="flex items-center gap-3">
                                             <img v-if="user.profile_photo_url" :src="user.profile_photo_url"
                                                 :alt="user.name"
-                                                class="h-8 w-8 shrink-0 rounded-full border border-gray-200 object-cover" />
+                                                class="size-8 shrink-0 rounded-full border border-gray-200 object-cover" />
                                             <div v-else
-                                                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-teal-100 bg-teal-50">
-                                                <span class="text-xs font-semibold text-teal-600">{{ getInitials(user.name) }}</span>
+                                                class="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#007C95]/10">
+                                                <span class="text-xs font-semibold text-[#007C95]">{{
+                                                    getInitials(user.name)
+                                                }}</span>
                                             </div>
-                                            <span class="font-medium text-gray-900">{{ user.name }}</span>
+                                            <p class="font-medium text-gray-900">{{ user.name }}</p>
                                         </div>
                                     </td>
 
                                     <!-- Email -->
-                                    <td class="px-5 py-3.5 whitespace-nowrap text-gray-500">{{ user.email }}</td>
-
-                                    <!-- Role -->
-                                    <td class="px-5 py-3.5 whitespace-nowrap">
-                                        <span v-if="user.roles.length"
-                                            class="inline-flex items-center rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-medium text-teal-700 border border-teal-100">
-                                            {{ user.roles[0].name }}
-                                        </span>
-                                        <span v-else class="text-xs italic text-gray-400">—</span>
+                                    <td class="px-4 py-3 whitespace-nowrap text-gray-500">
+                                        {{ user.email }}
                                     </td>
 
-                                    <!-- Status Active toggle -->
-                                    <td class="px-5 py-3.5 whitespace-nowrap">
-                                        <button v-if="can(PermissionEnum.EDIT_USER)" @click="toggleStatus(user)"
-                                            class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-transparent transition-colors duration-200 focus:ring-2 focus:ring-[#007C95] focus:ring-offset-2 focus:outline-none"
-                                            :class="user.is_active ? 'bg-[#007C95]' : 'bg-gray-200'"
-                                            role="switch" :aria-checked="user.is_active">
-                                            <span class="sr-only">Toggle Active status</span>
-                                            <span
-                                                class="pointer-events-none absolute left-0 inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                                                :class="user.is_active ? 'translate-x-4' : 'translate-x-0'" />
+                                    <!-- Role -->
+                                    <td class="px-4 py-3 whitespace-nowrap">
+                                        <span v-if="user.roles.length"
+                                            class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                                            :class="roleBadgeClass(user.roles[0].name)">
+                                            {{ user.roles[0].name }}
+                                        </span>
+                                        <span v-else class="text-xs text-gray-400">—</span>
+                                    </td>
+
+                                    <!-- Status -->
+                                    <td class="px-4 py-3 whitespace-nowrap">
+                                        <button v-if="can(PermissionEnum.EDIT_USER)"
+                                            class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition"
+                                            :class="user.is_active
+                                                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                                : 'bg-rose-50 text-rose-600 hover:bg-rose-100'"
+                                            @click="toggleStatus(user)">
+                                            {{ user.is_active ? 'Aktif' : 'Non Aktif' }}
                                         </button>
+                                        <span v-else
+                                            class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                                            :class="user.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-600'">
+                                            {{ user.is_active ? 'Aktif' : 'Non Aktif' }}
+                                        </span>
                                     </td>
 
                                     <!-- Aksi -->
-                                    <td class="px-5 py-3.5 whitespace-nowrap">
-                                        <div class="flex items-center gap-1">
-                                            <button
-                                                v-if="can(PermissionEnum.EDIT_USER)"
-                                                class="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
-                                                @click="router.get(`/management-user/${user.id}/edit`)"
-                                            >
-                                                <Pencil class="h-3.5 w-3.5" />
-                                            </button>
-                                            <button
-                                                v-if="can(PermissionEnum.DELETE_USER)"
-                                                class="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-500"
-                                                @click="openDelete(user)"
-                                            >
-                                                <Trash2 class="h-3.5 w-3.5" />
-                                            </button>
-                                        </div>
+                                    <td class="px-4 py-3 whitespace-nowrap w-[50px]">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger as-child>
+                                                <button
+                                                    class="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600">
+                                                    <EllipsisVertical class="size-4" />
+                                                </button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" class="w-40">
+                                                <DropdownMenuItem v-if="can(PermissionEnum.EDIT_USER)"
+                                                    class="gap-2 text-sm"
+                                                    @click="router.get(`/management-user/${user.id}/edit`)">
+                                                    <Pencil class="size-3.5" />
+                                                    Edit
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem v-if="can(PermissionEnum.DELETE_USER)"
+                                                    class="gap-2 text-sm text-red-600 focus:text-red-600"
+                                                    @click="openDelete(user)">
+                                                    <Trash2 class="size-3.5" />
+                                                    Hapus
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </td>
                                 </tr>
 
+                                <!-- Empty State -->
                                 <tr v-if="users.data.length === 0">
                                     <td colspan="5" class="px-5 py-10 text-center">
                                         <div class="flex flex-col items-center gap-2">
-                                            <Vue3Lottie :animationData="emptyAnimation" :height="160" :width="160" :loop="true" />
+                                            <Vue3Lottie :animationData="emptyAnimation" :height="160" :width="160"
+                                                :loop="true" />
                                             <p class="text-sm font-medium text-gray-600">Tidak ada data User</p>
                                             <p class="text-xs text-gray-400">Coba ubah kata kunci pencarian</p>
                                         </div>
@@ -294,40 +413,12 @@ const getInitials = (name: string) =>
                             </tbody>
                         </table>
                     </div>
-
-                    <!-- Pagination Footer -->
-                    <div class="flex items-center justify-between border-t border-gray-100 px-5 py-4">
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs text-gray-500">Baris per halaman</span>
-                            <select v-model="perPage"
-                                class="h-8 rounded-lg border border-gray-200 bg-white px-2 text-xs text-gray-600 focus:ring-2 focus:ring-teal-100 focus:outline-none">
-                                <option :value="10">10</option>
-                                <option :value="25">25</option>
-                                <option :value="50">50</option>
-                                <option :value="100">100</option>
-                            </select>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <span class="text-xs text-gray-500">
-                                {{ users.from }}–{{ users.to }} dari {{ users.total }}
-                            </span>
-                            <div class="flex items-center gap-1">
-                                <button @click="goToPage(users.links[0]?.url ?? null)"
-                                    :disabled="users.current_page === 1"
-                                    class="rounded-lg border border-gray-200 p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-40">
-                                    <ChevronLeft class="h-4 w-4" />
-                                </button>
-                                <button @click="goToPage(users.links[users.links.length - 1]?.url ?? null)"
-                                    :disabled="users.current_page === users.last_page"
-                                    class="rounded-lg border border-gray-200 p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-40">
-                                    <ChevronRight class="h-4 w-4" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
+                <TablePagination :paginator="users" @navigate="goToPage" />
             </div>
+
+
         </div>
 
         <!-- Delete Confirmation Dialog -->
@@ -342,11 +433,8 @@ const getInitials = (name: string) =>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Batal</AlertDialogCancel>
-                    <AlertDialogAction
-                        class="bg-red-600 hover:bg-red-700"
-                        :disabled="isDeleting"
-                        @click="confirmDelete"
-                    >
+                    <AlertDialogAction class="bg-red-600 hover:bg-red-700" :disabled="isDeleting"
+                        @click="confirmDelete">
                         {{ isDeleting ? 'Menghapus...' : 'Ya, Hapus' }}
                     </AlertDialogAction>
                 </AlertDialogFooter>

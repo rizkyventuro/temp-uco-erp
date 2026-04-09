@@ -19,32 +19,46 @@ class ManagementUserController extends Controller
 {
     public function index(Request $request)
     {
+        $sortable  = ['name', 'email', 'created_at'];
+        $sortCol   = in_array($request->sort, $sortable) ? $request->sort : 'created_at';
+        $sortDir   = $request->direction === 'asc' ? 'asc' : 'desc';
+
         $users = User::with(['roles'])
-            ->when($request->search, function ($query, $search) {
-                $query->where(function ($q) use ($search) {
+            ->when($request->search, fn($q, $search) =>
+                $q->where(fn($q) =>
                     $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%");
-                });
+                      ->orWhere('email', 'like', "%{$search}%")
+                )
+            )
+            ->when($request->status, function ($q, $status) {
+                match ($status) {
+                    'active'   => $q->where('is_active', true),
+                    'inactive' => $q->where('is_active', false),
+                    default    => null,
+                };
             })
-            ->orderBy('created_at', 'desc')
-            ->paginate($request->get('perPage', 10))
+            ->when($request->role, fn($q, $role) =>
+                $q->whereHas('roles', fn($r) => $r->where('name', $role))
+            )
+            ->orderBy($sortCol, $sortDir)
+            ->paginate($request->input('perPage', 10))
             ->withQueryString()
             ->through(fn($user) => [
-                'id'                   => $user->id,
-                'name'                 => $user->name,
-                'email'                => $user->email,
-                'is_active'            => $user->is_active,
-                'profile_photo_url'    => ProfileController::resolvePhotoUrl($user),
-                'roles'                => $user->roles->map(fn($role) => [
+                'id'                => $user->id,
+                'name'              => $user->name,
+                'email'             => $user->email,
+                'is_active'         => $user->is_active,
+                'profile_photo_url' => ProfileController::resolvePhotoUrl($user),
+                'roles'             => $user->roles->map(fn($role) => [
                     'id'   => $role->id,
                     'name' => $role->name,
                 ]),
             ]);
 
         return Inertia::render('managementUser/ListManagementUser', [
-            'users'        => $users,
-            'filters'      => $request->only(['search', 'perPage', 'status']),
-            'pendingCount' => 0,
+            'users'   => $users,
+            'roles'   => Role::orderBy('name')->pluck('name'),
+            'filters' => $request->only(['search', 'perPage', 'status', 'role']),
         ]);
     }
 
