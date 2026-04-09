@@ -1,0 +1,6 @@
+flask==3.1.1
+gunicorn==23.0.0
+numpy
+opencv-python-headless
+paddlepaddle==3.0.0
+paddleocr==3.4.0

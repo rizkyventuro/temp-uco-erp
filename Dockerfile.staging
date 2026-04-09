@@ -1,0 +1,103 @@
+# ================================
+# Stage 1: Build Vue frontend (with PHP for wayfinder)
+# ================================
+FROM node:20-alpine AS frontend-builder
+
+# Install PHP CLI + extensions needed for Laravel bootstrap & wayfinder
+RUN apk add --no-cache \
+    php83 php83-mbstring php83-openssl php83-tokenizer \
+    php83-xml php83-phar php83-dom php83-fileinfo php83-ctype \
+    php83-session php83-curl php83-pdo php83-pdo_mysql \
+    php83-zip \
+    && ln -s /usr/bin/php83 /usr/bin/php
+
+WORKDIR /app
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Install Node dependencies (cached layer)
+COPY package*.json ./
+RUN npm install --legacy-peer-deps
+
+# Install PHP dependencies for wayfinder (cached layer)
+COPY composer.json composer.lock ./
+ENV COMPOSER_ALLOW_SUPERUSER=1
+RUN composer install --no-dev --no-scripts --ignore-platform-reqs --optimize-autoloader
+
+# Copy source, set env, and build
+COPY . .
+COPY docker/.env.staging .env
+
+RUN mkdir -p bootstrap/cache storage/logs storage/framework/cache storage/framework/sessions storage/framework/views \
+    && chmod -R 777 bootstrap/cache storage
+RUN php artisan wayfinder:generate --with-form
+
+RUN npm run build
+
+
+# ================================
+# Stage 2: PHP + Apache (Laravel)
+# ================================
+FROM php:8.4-apache AS laravel-app
+
+RUN apt-get update && apt-get install -y \
+    ghostscript \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
+    libpng-dev \
+    libwebp-dev \
+    libzip-dev \
+    libmagickwand-dev \
+    zlib1g-dev \
+    libmemcached-dev \
+    libssl-dev \
+    pkg-config \
+    zip \
+    unzip \
+    git \
+    curl \
+    libsodium-dev \
+    nano \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && docker-php-ext-install -j$(nproc) gd calendar \
+    && docker-php-ext-install zip \
+    && docker-php-ext-install pdo_mysql exif \
+    && docker-php-ext-install bcmath \
+    && docker-php-ext-install sodium \
+    && docker-php-ext-enable exif
+
+RUN pecl install imagick && docker-php-ext-enable imagick
+
+RUN a2enmod rewrite headers
+
+ENV COMPOSER_ALLOW_SUPERUSER=1
+
+WORKDIR /var/www/html
+
+COPY . /var/www/html
+COPY --from=frontend-builder /app/public/build /var/www/html/public/build
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+COPY docker/.env.staging /var/www/html/.env
+RUN mkdir -p bootstrap/cache storage/logs storage/framework/cache storage/framework/sessions storage/framework/views \
+    && chmod -R 777 bootstrap/cache storage
+RUN composer install --no-dev --optimize-autoloader
+
+RUN php artisan optimize
+
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+
+RUN echo "expose_php=Off" > /usr/local/etc/php/conf.d/no-expose.ini
+RUN echo "Header unset X-Powered-By" >> /etc/apache2/conf-available/security.conf \
+    && a2enconf security
+
+COPY ./docker/apache.conf /etc/apache2/sites-available/000-default.conf
+COPY ./docker/start.sh /usr/local/bin/start.sh
+RUN chmod +x /usr/local/bin/start.sh
+
+EXPOSE 80
+
+ENTRYPOINT ["/usr/local/bin/start.sh"]

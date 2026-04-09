@@ -1,0 +1,38 @@
+# Python
+venv313/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+
+# Node
+node_modules/
+
+# Laravel / PHP
+vendor/
+storage/logs/
+storage/framework/cache/
+storage/framework/sessions/
+storage/framework/views/
+bootstrap/cache/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+
+# Misc
+*.md
+*.log
+.DS_Store
+Thumbs.db
+nul
