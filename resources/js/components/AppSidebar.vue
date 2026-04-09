@@ -1,10 +1,22 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
 import {
-    LayoutDashboard, Database, PackageOpen, Send,
-    ArrowLeftRight, Layers, FileMinus, TrendingUp,
-    Briefcase, BarChart2, Settings, ChevronDown, LogOut,
+    ChevronDown, LogOut, Shield, Settings,
 } from 'lucide-vue-next';
+ 
+// Custom icon components
+import IconDashboard from '@/components/icons/menu/IconDashboard.vue';
+import IconMasterData from '@/components/icons/menu/iconMasterData.vue';
+import IconBarangMasuk from '@/components/icons/menu/iconBarangMasuk.vue';
+import IconBarangKeluar from '@/components/icons/menu/iconBarangKeluar.vue';
+import IconTransferStok from '@/components/icons/menu/iconTransferStok.vue';
+import IconOpname from '@/components/icons/menu/iconOpname.vue';
+import IconHutang from '@/components/icons/menu/iconHutang.vue';
+import IconPiutang from '@/components/icons/menu/iconPiutang.vue';
+import IconKas from '@/components/icons/menu/iconKas.vue';
+import IconLaporan from '@/components/icons/menu/iconLaporan.vue';
+import IconManagementUser from '@/components/icons/menu/iconManagementUser.vue';
+ 
 import { computed, ref } from 'vue';
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -25,40 +37,39 @@ import { dashboard, logout } from '@/routes';
 import AppLogo from './AppLogo.vue';
 import AppLogoIcon from './AppLogoIcon.vue';
 import { useSidebar } from '@/components/ui/sidebar';
-
+ 
 const { can } = usePermission();
 const { isCurrentUrl } = useCurrentUrl();
 const { state } = useSidebar();
-
 const isLogoutOpen = ref(false);
 const isMasterDataOpen = ref(false);
-
+ 
 const handleLogout = () => {
     router.flushAll();
     router.post(logout());
 };
-
+ 
 const masterDataItems = [
     { title: 'Supplier', href: '/master-data/supplier' },
     { title: 'Buyer (Customer)', href: '/master-data/buyer' },
     { title: 'Gudang / Tank', href: '/master-data/gudang' },
 ];
-
+ 
 const isMasterDataActive = computed(() =>
     masterDataItems.some(item => isCurrentUrl(item.href)),
 );
-
+ 
 const mainMenuItems = [
-    { title: 'Barang Masuk', href: '/barang-masuk', icon: PackageOpen },
-    { title: 'Barang Keluar', href: '/barang-keluar', icon: Send },
-    { title: 'Transfer Stok', href: '/transfer-stok', icon: ArrowLeftRight },
-    { title: 'Stok / Opname', href: '/stok-opname', icon: Layers },
-    { title: 'Hutang (AP)', href: '/hutang', icon: FileMinus },
-    { title: 'Piutang (AR)', href: '/piutang', icon: TrendingUp },
-    { title: 'Kas / Bank', href: '/kas-bank', icon: Briefcase },
-    { title: 'Laporan', href: '/laporan', icon: BarChart2 },
-    { title: 'Management User', href: '/management-user', icon: BarChart2 },
-    { title: 'Management Role', href: '/management-role', icon: BarChart2 },
+    { title: 'Barang Masuk', href: '/barang-masuk', icon: IconBarangMasuk },
+    { title: 'Barang Keluar', href: '/barang-keluar', icon: IconBarangKeluar },
+    { title: 'Transfer Stok', href: '/transfer-stok', icon: IconTransferStok },
+    { title: 'Stok / Opname', href: '/stok-opname', icon: IconOpname },
+    { title: 'Hutang (AP)', href: '/hutang', icon: IconHutang },
+    { title: 'Piutang (AR)', href: '/piutang', icon: IconPiutang },
+    { title: 'Kas / Bank', href: '/kas-bank', icon: IconKas },
+    { title: 'Laporan', href: '/laporan', icon: IconLaporan },
+    { title: 'Management User', href: '/management-user', icon: IconManagementUser },
+    { title: 'Management Role', href: '/management-role', icon: Shield },
     { title: 'Pengaturan', href: '/pengaturan', icon: Settings },
 ];
 
@@ -94,7 +105,7 @@ function activeClass(active: boolean) {
                 <SidebarMenuItem>
                     <SidebarMenuButton as-child tooltip="Dashboard" :class="activeClass(isCurrentUrl(dashboard()))">
                         <Link :href="dashboard()">
-                            <LayoutDashboard class="size-4 shrink-0" />
+                            <IconDashboard />
                             <span>Dashboard</span>
                         </Link>
                     </SidebarMenuButton>
@@ -105,15 +116,17 @@ function activeClass(active: boolean) {
                     <Collapsible v-model:open="isMasterDataOpen" class="group/collapsible">
                         <CollapsibleTrigger as-child>
                             <SidebarMenuButton tooltip="Master Data" :class="activeClass(isMasterDataActive)">
-                                <Database class="size-4 shrink-0" />
+                                <IconMasterData class="size-4 shrink-0" />
                                 <span>Master Data</span>
-                                <ChevronDown class="ml-auto size-4 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                                <ChevronDown
+                                    class="ml-auto size-4 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
                             </SidebarMenuButton>
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                             <SidebarMenuSub>
                                 <SidebarMenuSubItem v-for="sub in masterDataItems" :key="sub.href">
-                                    <SidebarMenuSubButton as-child :class="isCurrentUrl(sub.href) ? 'text-[#007C95] font-semibold bg-[#EBFFFA]' : 'text-[#101010]'">
+                                    <SidebarMenuSubButton as-child
+                                        :class="isCurrentUrl(sub.href) ? 'text-[#007C95] font-semibold bg-[#EBFFFA]' : 'text-[#101010]'">
                                         <Link :href="sub.href">{{ sub.title }}</Link>
                                     </SidebarMenuSubButton>
                                 </SidebarMenuSubItem>
@@ -145,7 +158,8 @@ function activeClass(active: boolean) {
             </AlertDialogHeader>
             <AlertDialogFooter>
                 <AlertDialogCancel>Batal</AlertDialogCancel>
-                <AlertDialogAction class="bg-red-600 hover:bg-red-700" @click="handleLogout">Ya, Keluar</AlertDialogAction>
+                <AlertDialogAction class="bg-red-600 hover:bg-red-700" @click="handleLogout">Ya, Keluar
+                </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>

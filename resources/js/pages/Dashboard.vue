@@ -137,7 +137,7 @@ const doughnutOptions = {
 
     <Head title="Dashboard" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex flex-col gap-6 p-6 bg-gray-50 min-h-screen">
+        <div class="flex flex-col gap-6 p-6 bg-gray-50 pb-10">
 
             <!-- Page Title -->
             <div>
@@ -151,7 +151,7 @@ const doughnutOptions = {
                     class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex flex-col gap-3">
                     <!-- header row -->
                     <div class="flex items-center justify-between">
-                        <span class="text-sm text-gray-500 font-medium">{{ card.label }}</span>
+                        <span class="text-sm text-[#101010] font-medium">{{ card.label }}</span>
 
                         <!-- icon -->
                         <span class="text-gray-300">
@@ -251,47 +251,67 @@ const doughnutOptions = {
             </div>
 
             <!-- ── Recent Transactions ─────────────────────── -->
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-sm font-semibold text-gray-800">Transaksi Terakhir</h2>
+            <div class=" rounded-2xl border border-gray-200 bg-white shadow-sm">
+
+                <!-- Header -->
+                <div class="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+                    <h2 class="text-sm font-semibold text-gray-700">
+                        Transaksi Terakhir
+                        <span class="font-normal text-gray-400">({{ recentTransactions.length }})</span>
+                    </h2>
                     <button
-                        class="text-xs font-semibold bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
-                        @click="router.get('/transactions')">
+                        class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50"
+                        @click="router.get('/barang-masuk')">
                         Lihat Semua
                     </button>
                 </div>
 
+                <!-- Table -->
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead>
-                            <tr class="border-b border-gray-100">
-                                <th v-for="col in ['Transaksi', 'Tanggal', 'Supplier', 'Volume', 'Gudang', 'Status']"
-                                    :key="col"
-                                    class="text-left text-xs font-semibold text-gray-400 pb-3 pr-4 whitespace-nowrap">
-                                    <div class="flex items-center gap-1">
-                                        {{ col }}
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-gray-300"
-                                            viewBox="0 0 20 20" fill="currentColor">
-                                            <path d="M5 12l5-5 5 5H5z" />
-                                        </svg>
-                                    </div>
-                                </th>
+                            <tr class="border-b border-gray-100 bg-gray-50/60">
+                                <th
+                                    class="px-5 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-gray-500">
+                                    No. Transaksi</th>
+                                <th
+                                    class="px-5 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-gray-500">
+                                    Tanggal</th>
+                                <th
+                                    class="px-5 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-gray-500">
+                                    Supplier</th>
+                                <th
+                                    class="px-5 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-gray-500">
+                                    Volume</th>
+                                <th
+                                    class="px-5 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-gray-500">
+                                    Gudang</th>
+                                <th
+                                    class="px-5 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-gray-500">
+                                    Status</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr v-for="tx in recentTransactions" :key="tx.id"
-                                class="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
-                                <td class="py-3 pr-4 font-medium text-gray-700 whitespace-nowrap">{{ tx.id }}</td>
-                                <td class="py-3 pr-4 text-gray-500 whitespace-nowrap">{{ tx.tanggal }}</td>
-                                <td class="py-3 pr-4 text-gray-700 whitespace-nowrap">{{ tx.supplier }}</td>
-                                <td class="py-3 pr-4 text-gray-500 whitespace-nowrap">{{ tx.volume }}</td>
-                                <td class="py-3 pr-4 text-gray-500 whitespace-nowrap">{{ tx.gudang }}</td>
-                                <td class="py-3 pr-4 whitespace-nowrap">
-                                    <span class="text-xs font-semibold" :class="{
-                                        'text-emerald-500': tx.status === 'Lunas',
-                                        'text-amber-500': tx.status === 'Pending',
-                                        'text-red-400': tx.status === 'Belum Lunas',
-                                    }">{{ tx.status }}</span>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr v-for="tx in recentTransactions" :key="tx.id" class="transition hover:bg-gray-50/50">
+                                <td class="px-5 py-3.5 whitespace-nowrap font-medium text-gray-900">{{ tx.id }}</td>
+                                <td class="px-5 py-3.5 whitespace-nowrap text-gray-500">{{ tx.tanggal }}</td>
+                                <td class="px-5 py-3.5 whitespace-nowrap text-gray-700">{{ tx.supplier }}</td>
+                                <td class="px-5 py-3.5 whitespace-nowrap text-gray-500">{{ tx.volume }}</td>
+                                <td class="px-5 py-3.5 whitespace-nowrap text-gray-500">{{ tx.gudang }}</td>
+                                <td class="px-5 py-3.5 whitespace-nowrap">
+                                    <span
+                                        class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border"
+                                        :class="{
+                                            'bg-emerald-50 text-emerald-700 border-emerald-100': tx.status === 'Lunas',
+                                            'bg-amber-50 text-amber-700 border-amber-100': tx.status === 'Pending',
+                                            'bg-red-50 text-red-600 border-red-100': tx.status === 'Belum Lunas',
+                                        }">{{ tx.status }}</span>
+                                </td>
+                            </tr>
+
+                            <tr v-if="recentTransactions.length === 0">
+                                <td colspan="6" class="px-5 py-10 text-center">
+                                    <p class="text-sm font-medium text-gray-500">Belum ada transaksi</p>
                                 </td>
                             </tr>
                         </tbody>

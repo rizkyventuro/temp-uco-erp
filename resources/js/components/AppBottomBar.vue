@@ -3,13 +3,11 @@ import { Link, router } from '@inertiajs/vue3';
 import { Bell, EllipsisIcon, LogOut, Shield } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import IconDashboard from '@/components/icons/menu/IconDashboard.vue';
-import IconManagementUser from '@/components/icons/menu/iconManagementUser.vue';
-import IconManajemen from '@/components/icons/menu/iconManajemen.vue';
-import IconPengambilan from '@/components/icons/menu/iconPengambilan.vue';
-import IconPenjualan from '@/components/icons/menu/iconPenjualan.vue';
-import IconProfil from '@/components/icons/menu/iconProfile.vue';
-import IconRiwayat from '@/components/icons/menu/iconRiwayatTransaksi.vue';
-import IconTransfer from '@/components/icons/menu/iconTransfer.vue';
+import IconPengambilan from '@/components/icons/menu/IconPengambilan.vue';
+import IconPenjualan from '@/components/icons/menu/IconPenjualan.vue';
+import IconProfil from '@/components/icons/menu/IconProfil.vue';
+import IconRiwayat from '@/components/icons/menu/IconRiwayatTransaksi.vue';
+import IconTransfer from '@/components/icons/menu/IconTransfer.vue';
 import {
     Sheet,
     SheetContent,
@@ -37,18 +35,18 @@ const { can } = usePermission();
 
 const allMainMenuItems: (NavItem & { permission?: PermissionEnum })[] = [
     { title: 'Dashboard', href: dashboard(), icon: IconDashboard },
-    { title: 'Pengambilan', href: '/collections', icon: IconPengambilan, permission: PermissionEnum.VIEW_PENGAMBILAN_POO },
-    { title: 'Transfer', href: '/transfers', icon: IconTransfer, permission: PermissionEnum.VIEW_TRANSFER },
-    { title: 'Penjualan', href: '/exports', icon: IconPenjualan, permission: PermissionEnum.VIEW_PENJUALAN },
+    // { title: 'Pengambilan', href: '/collections', icon: IconPengambilan, permission: PermissionEnum.VIEW_PENGAMBILAN_POO },
+    // { title: 'Transfer', href: '/transfers', icon: IconTransfer, permission: PermissionEnum.VIEW_TRANSFER },
+    // { title: 'Penjualan', href: '/exports', icon: IconPenjualan, permission: PermissionEnum.VIEW_PENJUALAN },
 ];
 
 const allMoreMenuItems: (NavItem & { permission?: PermissionEnum })[] = [
-    { title: 'Riwayat Transaksi', href: '/history', icon: IconRiwayat, permission: PermissionEnum.VIEW_RIWAYAT },
-    { title: 'Manajemen POO', href: '/management-poo', icon: IconManajemen, permission: PermissionEnum.VIEW_MASTER_POO },
-    { title: 'Role', href: '/roles', icon: Shield, permission: PermissionEnum.VIEW_ROLE },
-    { title: 'Manajemen User', href: '/management-user', icon: IconManagementUser, permission: PermissionEnum.VIEW_USER },
-    { title: 'Profil Akun', href: '/settings/profile', icon: IconProfil },
-    { title: 'Notifications', href: '/notifications', icon: Bell, permission: PermissionEnum.VIEW_NOTIFICATION },
+    // { title: 'Riwayat Transaksi', href: '/history', icon: IconRiwayat, permission: PermissionEnum.VIEW_RIWAYAT },
+    // { title: 'Manajemen POO', href: '/management-poo', icon: IconManajemen, permission: PermissionEnum.VIEW_MASTER_POO },
+    // { title: 'Role', href: '/roles', icon: Shield, permission: PermissionEnum.VIEW_ROLE },
+    // { title: 'Manajemen User', href: '/management-user', icon: IconManagementUser, permission: PermissionEnum.VIEW_USER },
+    // { title: 'Profil Akun', href: '/settings/profile', icon: IconProfil },
+    // { title: 'Notifications', href: '/notifications', icon: Bell, permission: PermissionEnum.VIEW_NOTIFICATION },
 ];
 
 const mainMenuItems = computed<NavItem[]>(() =>

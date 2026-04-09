@@ -9,7 +9,7 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        return Inertia::render('admin/Dashboard', $this->dataDashboard());
+        return Inertia::render('Dashboard', $this->dataDashboard());
     }
 
     private function dataDashboard(): array
@@ -68,7 +68,7 @@ class DashboardController extends Controller
             'volume'    => '8.000 kg',
             'gudang'    => 'Gudang Surabaya',
             'status'    => 'Lunas',
-        ]);
+        ])->values();
 
         return compact(
             'totalUcoMasuk',
