@@ -11,10 +11,3 @@ if (App::environment('production')) {
     Schedule::command('backup:cleanup')
         ->dailyAt('02:00');
 }
-
-
-// Schedule::command('queue:cleanup')
-//     ->everyMinute()
-//     ->onOneServer()
-//     ->withoutOverlapping()
-//     ->runInBackground(false);

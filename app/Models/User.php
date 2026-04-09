@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -15,7 +16,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasFactory, Notifiable, TwoFactorAuthenticatable, HasAuditFields, HasRoles;
+    use HasFactory, Notifiable, TwoFactorAuthenticatable, HasAuditFields, HasRoles, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -29,9 +30,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'profile_photo_disk',
         'has_no_password',
         'profile_completed_at',
-        'is_verified_by_admin',
-        'verified_by',
-        'verified_at',
         'password',
     ];
 
@@ -52,7 +50,6 @@ class User extends Authenticatable implements MustVerifyEmail
             'suspended_until'         => 'datetime',
             'has_no_password'          => 'boolean',
             'profile_completed_at'    => 'datetime',
-            'is_verified_by_admin'    => 'integer',
             'verified_at'             => 'datetime',
         ];
     }
@@ -62,24 +59,9 @@ class User extends Authenticatable implements MustVerifyEmail
         return !is_null($this->password);
     }
 
-    public function profile(): HasOne
-    {
-        return $this->hasOne(UserProfile::class);
-    }
-
     public function verifier(): HasOne
     {
         return $this->hasOne(User::class, 'id', 'verified_by');
-    }
-
-    public function notifications(): MorphMany
-    {
-        return $this->morphMany(Notification::class, 'notifiable');
-    }
-
-    public function sentNotifications(): HasMany
-    {
-        return $this->hasMany(Notification::class, 'sender_id');
     }
 
     public function unreadNotifications(): MorphMany

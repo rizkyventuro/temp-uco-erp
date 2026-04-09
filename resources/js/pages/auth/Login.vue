@@ -101,22 +101,7 @@ onMounted(() => {
                     Log in
                 </Button>
 
-                <div class="relative mt-4 flex justify-center text-sm">
-                    <span class="bg-background px-2 text-muted-foreground">Or continue with</span>
-                </div>
-
-                <div class="mt-2 flex justify-center">
-                    <div id="g_id_onload" :data-client_id="googleClientId" data-context="signin" data-ux_mode="popup"
-                        data-callback="handleOauthResponse" data-auto_prompt="false"></div>
-
-                    <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline"
-                        data-text="signin_with" data-size="large" data-logo_alignment="center"></div>
-                </div>
-            </div>
-
-            <div class="text-center text-sm text-muted-foreground" v-if="canRegister">
-                Don't have an account?
-                <TextLink :href="register()" :tabindex="5">Sign up</TextLink>
+              
             </div>
         </Form>
     </AuthLayout>

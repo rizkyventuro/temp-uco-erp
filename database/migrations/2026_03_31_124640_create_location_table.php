@@ -22,34 +22,10 @@ return new class extends Migration
             $table->string('nama', 255);
             $table->timestamps();
         });
-
-        // Pastikan user_profiles sudah ada sebelum alter
-        if (Schema::hasTable('user_profiles')) {
-            Schema::table('user_profiles', function (Blueprint $table) {
-                if (Schema::hasColumn('user_profiles', 'province')) {
-                    $table->dropColumn('province');
-                }
-                if (Schema::hasColumn('user_profiles', 'city')) {
-                    $table->dropColumn('city');
-                }
-
-                $table->string('province_referensi_id', 32)->nullable()->after('address');
-                $table->string('city_referensi_id', 32)->nullable()->after('province_referensi_id');
-            });
-        }
     }
 
     public function down(): void
     {
-        if (Schema::hasTable('user_profiles')) {
-            Schema::table('user_profiles', function (Blueprint $table) {
-                $table->dropColumn(['province_referensi_id', 'city_referensi_id']);
-
-                $table->string('province')->nullable()->after('address');
-                $table->string('city')->nullable()->after('province');
-            });
-        }
-
         Schema::dropIfExists('cities');
         Schema::dropIfExists('provinces');
     }

@@ -18,7 +18,6 @@ interface User {
     name: string;
     email: string;
     is_active: boolean;
-    is_verified_by_admin: boolean;
     profile_completed_at: string | null;
     profile_photo_url?: string | null;
 }
@@ -188,24 +187,7 @@ const getInitials = (name: string) => {
                                 </td>
                                 <td class="px-6 py-4 text-gray-600">{{ user.email }}</td>
                                 <td class="px-6 py-4">
-                                    <div class="flex justify-center">
-                                        <Button
-                                            v-if="!user.is_verified_by_admin && user.profile_completed_at"
-                                            @click="verifyUser(user)"
-                                            size="sm"
-                                            class="bg-[#007C95] hover:bg-[#00667a] text-white flex items-center gap-2"
-                                        >
-                                            <CheckCircle class="h-4 w-4" />
-                                            Verifikasi
-                                        </Button>
-                                        <span v-else-if="user.is_verified_by_admin" class="text-green-600 flex items-center gap-1 text-xs font-semibold">
-                                            <CheckCircle class="h-3 w-3" />
-                                            Terverifikasi
-                                        </span>
-                                        <span v-else class="text-gray-400 text-xs italic">
-                                            Belum Lengkap
-                                        </span>
-                                    </div>
+                                  
                                 </td>
                             </tr>
                             <tr v-if="users.data.length === 0">

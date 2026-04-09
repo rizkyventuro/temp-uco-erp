@@ -19,14 +19,6 @@ const sidebarNavItems: NavItem[] = [
         title: 'Password',
         href: editPassword(),
     },
-    {
-        title: 'Two-Factor Auth',
-        href: show(),
-    },
-    {
-        title: 'Global Setting',
-        href: { url: '/settings/global', method: 'get' },
-    },
 ];
 
 const { isCurrentUrl } = useCurrentUrl();

@@ -14,15 +14,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            // StationSeeder::class,
             PermissionSeeder::class,
-            GlobalSettingSeeder::class,
         ]);
-
-        // User::factory()->create([
-        //     'name' => 'Admin',
-        //     'email' => 'admin@gmail.com',
-        //     'password' => bcrypt('admin'),
-        // ]);
     }
 }

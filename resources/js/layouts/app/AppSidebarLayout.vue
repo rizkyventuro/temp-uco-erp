@@ -23,7 +23,7 @@ withDefaults(defineProps<Props>(), {
             variant="sidebar"
             class="overflow-x-hidden bg-[#F5F7FA]"
         >
-            <!-- <AppSidebarHeader :breadcrumbs="breadcrumbs" /> -->
+            <AppSidebarHeader :breadcrumbs="breadcrumbs" />
             <slot />
         </AppContent>
     </AppShell>

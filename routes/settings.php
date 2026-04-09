@@ -1,9 +1,7 @@
 <?php
 
-use App\Http\Controllers\Settings\GlobalSettingController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
-use App\Http\Controllers\Settings\TwoFactorAuthenticationController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -22,17 +20,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('settings/password', [PasswordController::class, 'update'])
         ->middleware('throttle:6,1')
         ->name('user-password.update');
-
-    // Route::get('settings/appearance', function () {
-    //     return Inertia::render('settings/Appearance');
-    // })->name('appearance.edit');
-
-    Route::get('settings/two-factor', [TwoFactorAuthenticationController::class, 'show'])
-        ->name('two-factor.show');
-
-    Route::get('settings/global', [GlobalSettingController::class, 'edit'])
-        ->name('global-setting.edit');
-
-    Route::put('settings/global', [GlobalSettingController::class, 'update'])
-        ->name('global-setting.update');
 });

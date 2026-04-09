@@ -3,8 +3,9 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class PermissionSeeder extends Seeder
 {
@@ -14,33 +15,6 @@ class PermissionSeeder extends Seeder
         $permissions = [
             // Dashboard
             'view dashboard',
-            'view dashboard admin',
-
-            // Pengambilan POO
-            'view pengambilan poo',
-            'create pengambilan poo',
-            'detail pengambilan poo',
-
-            // Transfer UCO
-            'view transfer',
-            'create transfer',
-            'detail transfer',
-            'claim transfer',
-
-            // Penjualan / Export
-            'view penjualan',
-            'create penjualan',
-            'detail penjualan',
-            'download penjualan',
-
-            // Riwayat
-            'view riwayat',
-
-            // Master POO
-            'view master poo',
-            'create master poo',
-            'edit master poo',
-            'delete master poo',
 
             // Management User
             'view user',
@@ -53,10 +27,7 @@ class PermissionSeeder extends Seeder
             'view role',
             'create role',
             'edit role',
-            'delete role',
-
-            // Notification
-            'view notification',
+            'delete role'
         ];
 
         foreach ($permissions as $permission) {
@@ -78,9 +49,6 @@ class PermissionSeeder extends Seeder
         // ── Roles ──────────────────────────────────────────────────
         $roles = [
             'admin' => [
-                // Dashboard
-                'view dashboard admin',
-                
                 // Management User
                 'view user',
                 'create user',
@@ -93,43 +61,6 @@ class PermissionSeeder extends Seeder
                 'create role',
                 'edit role',
                 'delete role',
-
-                // Notification
-                'view notification',
-            ],
-
-            'pengepul' => [
-                // Dashboard
-                'view dashboard',
-
-                // Pengambilan POO
-                'view pengambilan poo',
-                'create pengambilan poo',
-                'detail pengambilan poo',
-
-                // Transfer UCO
-                'view transfer',
-                'create transfer',
-                'detail transfer',
-                'claim transfer',
-
-                // Penjualan / Export
-                'view penjualan',
-                'create penjualan',
-                'detail penjualan',
-                'download penjualan',
-
-                // Riwayat
-                'view riwayat',
-
-                // Master POO
-                'view master poo',
-                'create master poo',
-                'edit master poo',
-                'delete master poo',
-
-                // Notification
-                'view notification',
             ],
         ];
 
@@ -168,23 +99,26 @@ class PermissionSeeder extends Seeder
             $this->command->warn("   Dihapus : {$removedRoles}");
         }
 
-        // ── Default Users Role ─────────────────────────────────────
-        $userRoles = [
-            'admin@gmail.com'     => 'admin',
-            'pengepul@gmail.com'  => 'pengepul',
-            'pengepul2@gmail.com' => 'pengepul',
+        // ── Default Users ──────────────────────────────────────────
+        $defaultUsers = [
+            [
+                'name'                => 'Admin',
+                'email'               => 'admin@gmail.com',
+                'password'            => Hash::make('admin'),
+                'email_verified_at'   => now(),
+            ],
         ];
 
-        foreach ($userRoles as $email => $role) {
-            $user = \App\Models\User::where('email', $email)->first();
-            if ($user) {
-                $user->syncRoles([$role]);
-            }
+        foreach ($defaultUsers as $userData) {
+            \App\Models\User::firstOrCreate(
+                ['email' => $userData['email']],
+                $userData
+            );
         }
 
         if ($this->command) {
             $this->command->newLine();
-            $this->command->info("✅ Default users role selesai disinkronisasi.");
+            $this->command->info("✅ Default users selesai disinkronisasi.");
         }
     }
 }

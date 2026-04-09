@@ -19,11 +19,6 @@ const { isCurrentUrl } = useCurrentUrl();
 
 <template>
     <SidebarGroup class="px-2 py-0">
-        <SidebarGroupLabel
-            class="p-0 text-xs font-semibold tracking-wider text-[#878787]"
-        >
-            Menu Utama
-        </SidebarGroupLabel>
         <SidebarMenu>
             <SidebarMenuItem
                 v-for="item in items"

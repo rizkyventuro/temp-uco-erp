@@ -23,11 +23,12 @@ return new class extends Migration
             $table->integer('failed_login_attempts')->default(0);
             $table->timestamp('suspended_until')->nullable();
             $table->boolean('has_no_password')->default(false);
-            $table->tinyInteger('is_verified_by_admin')->default(0); // 0=belum lengkap | 1=menunggu | 2=disetujui | 3=ditolak
-            $table->foreignId('verified_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamp('verified_at')->nullable();
             $table->rememberToken();
             $table->timestamps();
+            $table->softDeletes();
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->unsignedBigInteger('updated_by')->nullable();
+            $table->unsignedBigInteger('deleted_by')->nullable();
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
