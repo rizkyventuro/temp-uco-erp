@@ -19,11 +19,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Management User
     Route::prefix('management-user')->name('management-user.')->middleware('can:' . PermissionEnum::VIEW_USER->value)->group(function () {
         Route::get('/', [ManagementUserController::class, 'index'])->name('index');
+        Route::get('/create', [ManagementUserController::class, 'create'])->name('create');
         Route::post('/', [ManagementUserController::class, 'store'])->name('store');
+        Route::get('/{id}/edit', [ManagementUserController::class, 'edit'])->name('edit');
         Route::put('/{id}', [ManagementUserController::class, 'update'])->name('update');
         Route::delete('/{id}', [ManagementUserController::class, 'destroy'])->name('destroy');
-        Route::patch('/{user}/verify', [ManagementUserController::class, 'verify'])->name('verify');
-        Route::patch('/{user}/reject', [ManagementUserController::class, 'reject'])->name('reject');
     });
 
     // Role

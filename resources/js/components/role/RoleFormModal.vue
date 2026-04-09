@@ -70,9 +70,9 @@ function isGroupIndeterminate(group: PermissionGroup) {
 
 function submit() {
     if (props.editTarget) {
-        form.patch(`/roles/${props.editTarget.id}`, { onSuccess: close });
+        form.patch(`/management-role/${props.editTarget.id}`, { onSuccess: close });
     } else {
-        form.post('/roles', { onSuccess: close });
+        form.post('/management-role', { onSuccess: close });
     }
 }
 
@@ -121,7 +121,7 @@ function formatLabel(name: string) {
                             <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">
                                 Nama Role
                             </label>
-                            <input v-model="form.name" type="text" disabled placeholder="Masukkan Nama Role"
+                            <input v-model="form.name" type="text" placeholder="Masukkan Nama Role"
                                 class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 focus:border-[#007C95] focus:ring-2 focus:ring-[#007C95]/20 focus:outline-none" />
                             <p v-if="form.errors.name" class="mt-1 text-xs text-red-500">
                                 {{ form.errors.name }}

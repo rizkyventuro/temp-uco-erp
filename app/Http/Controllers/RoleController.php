@@ -33,7 +33,7 @@ class RoleController extends Controller
             ])
             ->values();
 
-        return Inertia::render('admin/role/ListRole', [
+        return Inertia::render('ListRole', [
             'roles'       => $roles,
             'permissions' => $permissions,
         ]);

@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { PermissionEnum } from '@/enums/PermissionEnum';
 import {
@@ -7,27 +7,29 @@ import {
     Trash2,
     ChevronLeft,
     ChevronRight,
-    CheckCircle,
+    Plus,
 } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import { Vue3Lottie } from 'vue3-lottie';
 import emptyAnimation from '@/../../public/assets/animations/Pencarian Tidak Ditemukan.json';
 
-import UserDeleteModal from '@/components/ManagementUser/UserDeleteModal.vue';
-import UserFormModal from '@/components/ManagementUser/UserFormModal.vue';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { usePermission } from '@/composables/usePermission';
-import { type BreadcrumbItem } from '@/types'; import UserVerifyModal from '@/components/ManagementUser/UserVerifyModal.vue';
+import type { BreadcrumbItem } from '@/types';
 
 const { can } = usePermission();
-
-// tambah state
-const isVerifyOpen = ref(false);
-const verifyingUser = ref<User | null>(null);
-
-const openVerify = (user: User) => { verifyingUser.value = user; isVerifyOpen.value = true; };
 
 interface Role {
     id: number;
@@ -39,22 +41,7 @@ interface User {
     name: string;
     email: string;
     is_active: boolean;
-    is_verified_by_admin: number;
     profile_photo_url?: string | null;
-    profile: {
-        phone: string | null;
-        birth_date: string | null;
-        gender: string | null;
-        occupation: string | null;
-        address: string | null;
-        province: string | null;
-        city: string | null;
-        district: string | null;
-        village: string | null;
-        postal_code: string | null;
-        id_card_number: string | null;
-        id_card_photo_url: string | null;
-    } | null;
     roles: Role[];
 }
 
@@ -72,7 +59,6 @@ interface PaginatedUsers {
 const props = defineProps<{
     users: PaginatedUsers;
     filters: { search?: string; perPage?: number; status?: string };
-    roles: Role[];
     pendingCount: number;
 }>();
 
@@ -83,10 +69,11 @@ const breadcrumbs: BreadcrumbItem[] = [
 const searchQuery = ref(props.filters.search ?? '');
 const perPage = ref(props.filters.perPage ?? 10);
 const currentStatus = ref(props.filters.status ?? 'all');
-const isFormOpen = ref(false);
+
+// Delete state
 const isDeleteOpen = ref(false);
-const editingUser = ref<User | null>(null);
 const deletingUser = ref<User | null>(null);
+const isDeleting = ref(false);
 
 const buildParams = () => ({
     search: searchQuery.value,
@@ -119,12 +106,24 @@ const goToPage = (url: string | null) => {
     router.get(url, buildParams(), { preserveState: true });
 };
 
-const openCreate = () => { editingUser.value = null; isFormOpen.value = true; };
-const openEdit = (user: User) => { editingUser.value = user; isFormOpen.value = true; };
-const openDelete = (user: User) => { deletingUser.value = user; isDeleteOpen.value = true; };
+const openDelete = (user: User) => {
+    deletingUser.value = user;
+    isDeleteOpen.value = true;
+};
 
-const getInitials = (name: string) =>
-    name.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('');
+const confirmDelete = () => {
+    if (!deletingUser.value) return;
+    isDeleting.value = true;
+    router.delete(`/management-user/${deletingUser.value.id}`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            toast.success('Berhasil!', { description: 'User berhasil dihapus' });
+            isDeleteOpen.value = false;
+        },
+        onError: () => toast.error('Gagal!', { description: 'Gagal menghapus user' }),
+        onFinish: () => { isDeleting.value = false; },
+    });
+};
 
 const toggleStatus = (user: User) => {
     router.put(
@@ -138,10 +137,12 @@ const toggleStatus = (user: User) => {
         },
     );
 };
+
+const getInitials = (name: string) =>
+    name.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('');
 </script>
 
 <template>
-
     <Head title="Manajemen User" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
@@ -153,8 +154,7 @@ const toggleStatus = (user: User) => {
                     <div class="flex items-center gap-2">
                         <div class="flex h-8 w-8 items-center justify-center text-[#007C95]">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                                class="lucide lucide-users">
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
                                 <circle cx="9" cy="7" r="4" />
                                 <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
@@ -189,8 +189,12 @@ const toggleStatus = (user: User) => {
                         <input v-model="searchQuery" type="text" placeholder="Cari user berdasarkan nama atau email..."
                             class="h-10 w-full rounded-lg border border-gray-200 bg-white py-2.5 pr-4 pl-10 text-sm placeholder-gray-400 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 focus:outline-none" />
                     </div>
-                    <Button v-if="can(PermissionEnum.CREATE_USER)" @click="openCreate"
-                        class="shrink-0 rounded bg-primary px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-hover">
+                    <Button
+                        v-if="can(PermissionEnum.CREATE_USER)"
+                        class="shrink-0 gap-1.5 bg-[#007C95] hover:bg-[#006b80] text-white"
+                        @click="router.get('/management-user/create')"
+                    >
+                        <Plus class="size-4" />
                         Tambah User
                     </Button>
                 </div>
@@ -208,24 +212,11 @@ const toggleStatus = (user: User) => {
                         <table class="w-full text-sm">
                             <thead>
                                 <tr class="border-b border-gray-100 bg-gray-50/60">
-                                    <th
-                                        class="px-5 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-gray-500">
-                                        Nama</th>
-                                    <th
-                                        class="px-5 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-gray-500">
-                                        Email</th>
-                                    <th
-                                        class="px-5 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-gray-500">
-                                        Role</th>
-                                    <th
-                                        class="px-5 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-gray-500">
-                                        Status Active</th>
-                                    <th
-                                        class="px-5 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-gray-500">
-                                        Verifikasi</th>
-                                    <th
-                                        class="px-5 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-gray-500">
-                                        Aksi</th>
+                                    <th class="px-5 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-gray-500">Nama</th>
+                                    <th class="px-5 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-gray-500">Email</th>
+                                    <th class="px-5 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-gray-500">Role</th>
+                                    <th class="px-5 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-gray-500">Status</th>
+                                    <th class="px-5 py-2.5 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-gray-500">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
@@ -239,8 +230,7 @@ const toggleStatus = (user: User) => {
                                                 class="h-8 w-8 shrink-0 rounded-full border border-gray-200 object-cover" />
                                             <div v-else
                                                 class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-teal-100 bg-teal-50">
-                                                <span class="text-xs font-semibold text-teal-600">{{
-                                                    getInitials(user.name) }}</span>
+                                                <span class="text-xs font-semibold text-teal-600">{{ getInitials(user.name) }}</span>
                                             </div>
                                             <span class="font-medium text-gray-900">{{ user.name }}</span>
                                         </div>
@@ -249,7 +239,7 @@ const toggleStatus = (user: User) => {
                                     <!-- Email -->
                                     <td class="px-5 py-3.5 whitespace-nowrap text-gray-500">{{ user.email }}</td>
 
-                                    <!-- Role (badge saja) -->
+                                    <!-- Role -->
                                     <td class="px-5 py-3.5 whitespace-nowrap">
                                         <span v-if="user.roles.length"
                                             class="inline-flex items-center rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-medium text-teal-700 border border-teal-100">
@@ -258,56 +248,34 @@ const toggleStatus = (user: User) => {
                                         <span v-else class="text-xs italic text-gray-400">—</span>
                                     </td>
 
-                                    <!-- Status Active -->
+                                    <!-- Status Active toggle -->
                                     <td class="px-5 py-3.5 whitespace-nowrap">
                                         <button v-if="can(PermissionEnum.EDIT_USER)" @click="toggleStatus(user)"
-                                            class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none"
-                                            :class="user.is_active ? 'bg-primary' : 'bg-gray-200'" role="switch"
-                                            :aria-checked="user.is_active">
+                                            class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-transparent transition-colors duration-200 focus:ring-2 focus:ring-[#007C95] focus:ring-offset-2 focus:outline-none"
+                                            :class="user.is_active ? 'bg-[#007C95]' : 'bg-gray-200'"
+                                            role="switch" :aria-checked="user.is_active">
                                             <span class="sr-only">Toggle Active status</span>
                                             <span
                                                 class="pointer-events-none absolute left-0 inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                                                :class="user.is_active ? 'translate-x-4' : 'translate-x-0'"></span>
+                                                :class="user.is_active ? 'translate-x-4' : 'translate-x-0'" />
                                         </button>
-                                    </td>
-
-                                    <!-- Verifikasi -->
-                                    <td class="px-5 py-3.5 whitespace-nowrap">
-                                        <!-- status 1: menunggu → tombol review -->
-                                        <Button v-if="user.is_verified_by_admin === 1 && can(PermissionEnum.VERIFY_USER)" @click="openVerify(user)"
-                                            size="sm"
-                                            class="bg-amber-500 hover:bg-amber-600 text-white flex items-center gap-1.5 text-xs">
-                                            <CheckCircle class="h-3.5 w-3.5" />
-                                            Review
-                                        </Button>
-
-                                        <!-- status 2: disetujui -->
-                                        <span v-else-if="user.is_verified_by_admin === 2"
-                                            class="inline-flex items-center gap-1 text-xs font-semibold text-green-600">
-                                            <CheckCircle class="h-3.5 w-3.5" />
-                                            Terverifikasi
-                                        </span>
-
-                                        <!-- status 3: ditolak -->
-                                        <span v-else-if="user.is_verified_by_admin === 3"
-                                            class="inline-flex items-center gap-1 text-xs font-semibold text-red-500">
-                                            <XCircle class="h-3.5 w-3.5" />
-                                            Ditolak
-                                        </span>
-
-                                        <!-- status 0: belum lengkap -->
-                                        <span v-else class="text-xs italic text-gray-400">Belum Lengkap</span>
                                     </td>
 
                                     <!-- Aksi -->
                                     <td class="px-5 py-3.5 whitespace-nowrap">
                                         <div class="flex items-center gap-1">
-                                            <button v-if="can(PermissionEnum.EDIT_USER)" @click="openEdit(user)"
-                                                class="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600">
+                                            <button
+                                                v-if="can(PermissionEnum.EDIT_USER)"
+                                                class="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                                                @click="router.get(`/management-user/${user.id}/edit`)"
+                                            >
                                                 <Pencil class="h-3.5 w-3.5" />
                                             </button>
-                                            <button v-if="can(PermissionEnum.DELETE_USER)" @click="openDelete(user)"
-                                                class="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-500">
+                                            <button
+                                                v-if="can(PermissionEnum.DELETE_USER)"
+                                                class="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-500"
+                                                @click="openDelete(user)"
+                                            >
                                                 <Trash2 class="h-3.5 w-3.5" />
                                             </button>
                                         </div>
@@ -315,10 +283,9 @@ const toggleStatus = (user: User) => {
                                 </tr>
 
                                 <tr v-if="users.data.length === 0">
-                                    <td colspan="6" class="px-5 py-10 text-center">
+                                    <td colspan="5" class="px-5 py-10 text-center">
                                         <div class="flex flex-col items-center gap-2">
-                                            <Vue3Lottie :animationData="emptyAnimation" :height="160" :width="160"
-                                                :loop="true" />
+                                            <Vue3Lottie :animationData="emptyAnimation" :height="160" :width="160" :loop="true" />
                                             <p class="text-sm font-medium text-gray-600">Tidak ada data User</p>
                                             <p class="text-xs text-gray-400">Coba ubah kata kunci pencarian</p>
                                         </div>
@@ -359,20 +326,32 @@ const toggleStatus = (user: User) => {
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
 
-        <!-- Modals -->
-        <UserFormModal v-model:open="isFormOpen" :editing-user="editingUser" :roles="roles" post-url="/management-user"
-            @success="toast.success('Berhasil!', { description: editingUser ? 'Data user berhasil diperbarui' : 'Data user berhasil ditambahkan' })"
-            @error="toast.error('Gagal!', { description: 'Terjadi kesalahan saat menyimpan data' })" />
+        <!-- Delete Confirmation Dialog -->
+        <AlertDialog v-model:open="isDeleteOpen">
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Hapus User</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Apakah Anda yakin ingin menghapus user <strong>{{ deletingUser?.name }}</strong>?
+                        Tindakan ini tidak dapat dibatalkan.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                    <AlertDialogAction
+                        class="bg-red-600 hover:bg-red-700"
+                        :disabled="isDeleting"
+                        @click="confirmDelete"
+                    >
+                        {{ isDeleting ? 'Menghapus...' : 'Ya, Hapus' }}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
 
-        <UserDeleteModal v-model:open="isDeleteOpen" :user="deletingUser" delete-url="/management-user"
-            @success="toast.success('Berhasil!', { description: 'Data user berhasil dihapus' })"
-            @error="toast.error('Gagal!', { description: 'Terjadi kesalahan saat menghapus data' })" />
-
-        <UserVerifyModal v-model:open="isVerifyOpen" :user="verifyingUser"
-            @success="toast.success('Berhasil!', { description: 'Keputusan verifikasi berhasil disimpan' })"
-            @error="toast.error('Gagal!', { description: 'Terjadi kesalahan saat memverifikasi' })" />
     </AppLayout>
 </template>
