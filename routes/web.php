@@ -2,6 +2,7 @@
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Auth\VerifyEmailController as CustomVerifyEmailController;
+use App\Http\Controllers\BuyerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ManagementUserController;
 use App\Http\Controllers\RoleController;
@@ -37,8 +38,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 
 
-    // Supplier
     Route::prefix('master-data')->name('master-data.')->group(function () {
+        // Supplier
         Route::prefix('supplier')->name('supplier.')->group(function () {
             Route::get('/', [SupplierController::class, 'index'])->name('index');
             Route::get('/{supplier}', [SupplierController::class, 'show'])->name('show');
@@ -47,6 +48,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::patch('/{supplier}', [SupplierController::class, 'update'])->name('update');
             Route::patch('/{supplier}/toggle-status', [SupplierController::class, 'toggleStatus'])->name('toggle-status');
             Route::delete('/{supplier}', [SupplierController::class, 'destroy'])->name('destroy');
+        });
+
+        // Buyer
+        Route::prefix('buyer')->name('buyer.')->group(function () {
+            Route::get('/', [BuyerController::class, 'index'])->name('index');
+            Route::get('/{buyer}', [BuyerController::class, 'show'])->name('show');
+            Route::get('/{buyer}/edit', [BuyerController::class, 'edit'])->name('edit');
+            Route::post('/', [BuyerController::class, 'store'])->name('store');
+            Route::patch('/{buyer}', [BuyerController::class, 'update'])->name('update');
+            Route::patch('/{buyer}/toggle-status', [BuyerController::class, 'toggleStatus'])->name('toggle-status');
+            Route::delete('/{buyer}', [BuyerController::class, 'destroy'])->name('destroy');
         });
     });
 });

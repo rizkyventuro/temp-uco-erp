@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
-import { watch, computed, ref } from 'vue';
+import { watch, computed } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -9,13 +9,11 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import type { Supplier } from '@/components/SupplierFormModal.vue';
-
-// ── Props & Emits ──────────────────────────────────────────────
+import type { Buyer } from '@/components/Buyer/BuyerFormModal.vue';
 
 const props = defineProps<{
     open: boolean;
-    supplier: Supplier | null;
+    buyer: Buyer | null;
     toggleUrl: string;
 }>();
 
@@ -23,8 +21,6 @@ const emit = defineEmits<{
     (e: 'update:open', value: boolean): void;
     (e: 'success'): void;
 }>();
-
-// ── Form ───────────────────────────────────────────────────────
 
 const ALASAN_OPTIONS = [
     'Tidak aktif beroperasi',
@@ -39,34 +35,27 @@ const form = useForm({
     catatan: '',
 });
 
-const isDeactivating = computed(() => !!props.supplier?.is_active);
-
+const isDeactivating = computed(() => !!props.buyer?.is_active);
 const alasanOpen = ref(false);
-const catatanOpen = ref(false);
 
-watch(
-    () => props.open,
-    (open) => {
-        if (!open) {
-            form.reset();
-            form.clearErrors();
-            alasanOpen.value = false;
-            catatanOpen.value = false;
-        }
-    },
-);
+import { ref } from 'vue';
+
+watch(() => props.open, (open) => {
+    if (!open) {
+        form.reset();
+        form.clearErrors();
+        alasanOpen.value = false;
+    }
+});
 
 function selectAlasan(val: string) {
     form.alasan_nonaktif = val;
     alasanOpen.value = false;
 }
 
-// ── Submit ─────────────────────────────────────────────────────
-
 function handleSubmit() {
-    if (!props.supplier) return;
-
-    form.patch(`${props.toggleUrl}/${props.supplier.id}/toggle-status`, {
+    if (!props.buyer) return;
+    form.patch(`${props.toggleUrl}/${props.buyer.id}/toggle-status`, {
         onSuccess: () => {
             emit('update:open', false);
             emit('success');
@@ -80,26 +69,23 @@ function handleSubmit() {
     <Dialog :open="open" @update:open="emit('update:open', $event)">
         <DialogContent class="rounded-2xl p-0 sm:max-w-md">
 
-            <!-- Header -->
             <div class="px-6 pt-6 pb-0">
                 <DialogHeader>
                     <DialogTitle class="text-lg font-semibold text-gray-900">
-                        {{ isDeactivating ? 'Konfirmasi Nonaktifkan' : 'Konfirmasi Aktifkan' }}
+                        {{ isDeactivating ? 'Konfirmasi Nonaktifkan' : 'Aktifkan Buyer' }}
                     </DialogTitle>
                 </DialogHeader>
             </div>
 
-            <!-- Body -->
             <div class="px-6 pt-4 pb-5 grid gap-5">
 
-                <!-- Warning / Info banner -->
+                <!-- Banner -->
                 <div v-if="isDeactivating"
                     class="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
                     <span
                         class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-400 text-white text-xs font-bold">!</span>
                     <div class="flex-1 text-sm text-amber-800 leading-snug">
-                        Supplier yang dinonaktifkan tidak dapat digunakan dalam transaksi baru.
-                        Data historis tetap tersimpan.
+                        Buyer yang dinonaktifkan tidak dapat menerima penjualan baru. Data historis tetap tersimpan.
                     </div>
                     <button type="button" class="text-amber-400 hover:text-amber-600 shrink-0"
                         @click="emit('update:open', false)">
@@ -113,7 +99,7 @@ function handleSubmit() {
                     <span
                         class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white text-xs font-bold">✓</span>
                     <div class="flex-1 text-sm text-emerald-800 leading-snug">
-                        Supplier akan diaktifkan kembali dan dapat digunakan dalam transaksi baru.
+                        Buyer akan diaktifkan kembali dan dapat digunakan dalam penjualan baru.
                     </div>
                     <button type="button" class="text-emerald-400 hover:text-emerald-600 shrink-0"
                         @click="emit('update:open', false)">
@@ -127,14 +113,14 @@ function handleSubmit() {
                 <!-- Confirmation text -->
                 <p class="text-sm text-gray-800">
                     <template v-if="isDeactivating">
-                        Anda yakin ingin menonaktifkan supplier <strong>"{{ supplier?.nama }}"</strong>?
+                        Anda yakin ingin menonaktifkan buyer <strong>"{{ buyer?.nama }}"</strong>?
                     </template>
                     <template v-else>
-                        Anda yakin ingin mengaktifkan kembali supplier <strong>"{{ supplier?.nama }}"</strong>?
+                        Aktifkan kembali buyer <strong>"{{ buyer?.nama }}"</strong>?
                     </template>
                 </p>
 
-                <!-- Alasan Nonaktifkan (dropdown) -->
+                <!-- Alasan -->
                 <div v-if="isDeactivating" class="grid gap-1.5">
                     <Label class="text-sm font-semibold text-gray-900">Alasan Nonaktifkan</Label>
                     <div class="relative">
@@ -157,23 +143,17 @@ function handleSubmit() {
                             </button>
                         </div>
                     </div>
-                    <span v-if="form.errors.alasan_nonaktif" class="text-xs text-red-500">
-                        {{ form.errors.alasan_nonaktif }}
-                    </span>
                 </div>
 
-                <!-- Catatan (opsional) -->
+                <!-- Catatan -->
                 <div v-if="isDeactivating" class="grid gap-1.5">
                     <Label class="text-sm font-semibold text-gray-900">Catatan (opsional)</Label>
-                    <div class="relative">
-                        <textarea v-model="form.catatan" rows="4" placeholder="Masukkan catatan"
-                            class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 resize-none focus:border-gray-400 focus:outline-none" />
-                    </div>
+                    <textarea v-model="form.catatan" rows="4" placeholder="Masukkan catatan"
+                        class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 resize-none focus:border-gray-400 focus:outline-none" />
                 </div>
 
             </div>
 
-            <!-- Footer -->
             <div class="grid grid-cols-2 gap-3 border-t border-gray-100 px-6 py-4">
                 <Button variant="outline" class="w-full rounded-xl h-11 text-gray-600 border-gray-200"
                     :disabled="form.processing" @click="emit('update:open', false)">
@@ -181,13 +161,9 @@ function handleSubmit() {
                 </Button>
                 <Button :disabled="form.processing" :class="[
                     'w-full rounded-xl h-11 text-white font-medium',
-                    isDeactivating
-                        ? 'bg-red-500 hover:bg-red-600'
-                        : 'bg-emerald-600 hover:bg-emerald-700',
+                    isDeactivating ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-600 hover:bg-emerald-700',
                 ]" @click="handleSubmit">
-                    {{ form.processing
-                        ? 'Menyimpan...'
-                        : (isDeactivating ? 'Nonaktifkan' : 'Ya, Aktifkan') }}
+                    {{ form.processing ? 'Menyimpan...' : (isDeactivating ? 'Nonaktifkan' : 'Aktifkan') }}
                 </Button>
             </div>
 

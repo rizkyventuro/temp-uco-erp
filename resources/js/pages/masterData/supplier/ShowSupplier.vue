@@ -2,9 +2,9 @@
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref, watch, onMounted } from 'vue';
 import { Search } from 'lucide-vue-next';
-import SupplierFormModal from '@/components/SupplierFormModal.vue';
-import type { City } from '@/components/SupplierFormModal.vue';
-import SupplierStatusModal from '@/components/SupplierStatusModal.vue';
+import SupplierFormModal from '@/components/Supplier/SupplierFormModal.vue';
+import type { City } from '@/components/Supplier/SupplierFormModal.vue';
+import SupplierStatusModal from '@/components/Supplier/SupplierStatusModal.vue';
 import TableFilter from '@/components/TableFilter.vue';
 import type { FilterValues } from '@/components/TableFilter.vue';
 import TablePagination from '@/components/TablePagination.vue';

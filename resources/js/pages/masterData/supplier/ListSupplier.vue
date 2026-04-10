@@ -45,9 +45,9 @@ import { usePermission } from '@/composables/usePermission';
 import { PermissionEnum } from '@/enums/PermissionEnum';
 import type { BreadcrumbItem } from '@/types';
 
-import SupplierFormModal from '@/components/SupplierFormModal.vue';
-import type { Supplier, City } from '@/components/SupplierFormModal.vue';
-import SupplierStatusModal from '@/components/SupplierStatusModal.vue';
+import SupplierFormModal from '@/components/Supplier/SupplierFormModal.vue';
+import type { Supplier, City } from '@/components/Supplier/SupplierFormModal.vue';
+import SupplierStatusModal from '@/components/Supplier/SupplierStatusModal.vue';
 
 const { can } = usePermission();
 
@@ -549,11 +549,11 @@ const chevronClass = (col: string, dir: 'asc' | 'desc') =>
                                                         class="size-3.5" />
                                                     {{ supplier.is_active ? 'Nonaktifkan' : 'Aktifkan' }}
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem class="gap-2 text-sm text-red-600 focus:text-red-600"
+                                                <!-- <DropdownMenuItem class="gap-2 text-sm text-red-600 focus:text-red-600"
                                                     @click="openDelete(supplier)">
                                                     <Trash2 class="size-3.5" />
                                                     Hapus
-                                                </DropdownMenuItem>
+                                                </DropdownMenuItem> -->
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </td>
