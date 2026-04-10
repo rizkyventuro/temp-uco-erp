@@ -16,4 +16,10 @@ export enum PermissionEnum {
     CREATE_ROLE = 'create role',
     EDIT_ROLE = 'edit role',
     DELETE_ROLE = 'delete role',
+
+    // Supplier
+    VIEW_SUPPLIER = 'view supplier',
+    CREATE_SUPPLIER = 'create supplier',
+    EDIT_SUPPLIER = 'edit supplier',
+    DELETE_SUPPLIER = 'delete supplier',
 }

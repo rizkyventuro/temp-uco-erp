@@ -20,4 +20,11 @@ enum PermissionEnum: string
     case CREATE_ROLE            = 'create role';
     case EDIT_ROLE              = 'edit role';
     case DELETE_ROLE            = 'delete role';
+
+    // Supplier
+    case VIEW_SUPPLIER          = 'view supplier';
+    case SHOW_SUPPLIER          = 'show supplier';
+    case CREATE_SUPPLIER        = 'create supplier';
+    case EDIT_SUPPLIER          = 'edit supplier';
+    case DELETE_SUPPLIER        = 'delete supplier';
 }

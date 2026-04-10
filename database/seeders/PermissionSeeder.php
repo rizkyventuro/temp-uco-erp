@@ -27,7 +27,14 @@ class PermissionSeeder extends Seeder
             'view role',
             'create role',
             'edit role',
-            'delete role'
+            'delete role',
+
+            // Supplier
+            'view supplier',
+            'show supplier',
+            'create supplier',
+            'edit supplier',
+            'delete supplier',
         ];
 
         foreach ($permissions as $permission) {
@@ -61,6 +68,13 @@ class PermissionSeeder extends Seeder
                 'create role',
                 'edit role',
                 'delete role',
+
+                // Supplier
+                'view supplier',
+                'show supplier',
+                'create supplier',
+                'edit supplier',
+                'delete supplier',
             ],
         ];
 

@@ -19,7 +19,7 @@
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
 
-    --radius-core: 14px;
+    --radius-core: 6px;
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);

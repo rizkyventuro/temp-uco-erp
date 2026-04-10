@@ -42,22 +42,23 @@ const { can } = usePermission();
 const { isCurrentUrl } = useCurrentUrl();
 const { state } = useSidebar();
 const isLogoutOpen = ref(false);
-const isMasterDataOpen = ref(false);
- 
+
 const handleLogout = () => {
     router.flushAll();
     router.post(logout());
 };
- 
+
 const masterDataItems = [
     { title: 'Supplier', href: '/master-data/supplier' },
     { title: 'Buyer (Customer)', href: '/master-data/buyer' },
     { title: 'Gudang / Tank', href: '/master-data/gudang' },
 ];
- 
+
 const isMasterDataActive = computed(() =>
     masterDataItems.some(item => isCurrentUrl(item.href)),
 );
+
+const isMasterDataOpen = ref(isMasterDataActive.value);
  
 const mainMenuItems = [
     { title: 'Barang Masuk', href: '/barang-masuk', icon: IconBarangMasuk },
