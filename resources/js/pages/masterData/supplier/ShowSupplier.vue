@@ -121,7 +121,7 @@ const props = defineProps<{
 
 // ── Edit modal ─────────────────────────────────────────────────
 
-const isEditOpen   = ref(false);
+const isEditOpen = ref(false);
 const isStatusOpen = ref(false);
 
 onMounted(() => {
@@ -181,17 +181,17 @@ const barOptions = {
 
 // ── Transaction toolbar ─────────────────────────────────────────
 
-const txSearch       = ref('');
-const txPerPage      = ref(10);
-const txCurrentPage  = ref(1);
+const txSearch = ref('');
+const txPerPage = ref(10);
+const txCurrentPage = ref(1);
 const txFilterValues = ref<FilterValues>({});
 
 const txFilterFields = computed(() => [
     {
         key: 'status', label: 'Status', type: 'select' as const,
         options: [
-            { label: 'Lunas',   value: 'Lunas'   },
-            { label: 'Hutang',  value: 'Hutang'  },
+            { label: 'Lunas', value: 'Lunas' },
+            { label: 'Hutang', value: 'Hutang' },
             { label: 'Pending', value: 'Pending' },
         ],
     },
@@ -228,13 +228,13 @@ const pagedTx = computed(() => {
 watch([txSearch, txPerPage, txFilterValues], () => { txCurrentPage.value = 1; }, { deep: true });
 
 const txPaginator = computed(() => {
-    const total   = filteredTx.value.length;
+    const total = filteredTx.value.length;
     const current = txCurrentPage.value;
-    const last    = txLastPage.value;
-    const from    = total === 0 ? null : (current - 1) * txPerPage.value + 1;
-    const to      = total === 0 ? null : Math.min(current * txPerPage.value, total);
-    const links   = [
-        { url: current > 1    ? `#p=${current - 1}` : null, label: '&laquo; Previous', active: false },
+    const last = txLastPage.value;
+    const from = total === 0 ? null : (current - 1) * txPerPage.value + 1;
+    const to = total === 0 ? null : Math.min(current * txPerPage.value, total);
+    const links = [
+        { url: current > 1 ? `#p=${current - 1}` : null, label: '&laquo; Previous', active: false },
         ...Array.from({ length: last }, (_, i) => ({
             url: `#p=${i + 1}`, label: String(i + 1), active: i + 1 === current,
         })),
@@ -467,15 +467,14 @@ const logDotColor: Record<string, string> = {
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-100">
-                                    <tr v-for="tx in pagedTx" :key="tx.id"
-                                        class="hover:bg-gray-50/50 transition">
+                                    <tr v-for="tx in pagedTx" :key="tx.id" class="hover:bg-gray-50/50 transition">
                                         <td class="px-4 py-3 whitespace-nowrap font-medium text-[#101010] text-[13px]">
                                             {{
                                                 tx.no_dokumen }}</td>
                                         <td class="px-4 py-3 whitespace-nowrap text-gray-500 text-[13px]">{{ tx.tanggal
-                                            }}</td>
+                                        }}</td>
                                         <td class="px-4 py-3 whitespace-nowrap text-gray-600 text-[13px]">{{ tx.gudang
-                                            }}</td>
+                                        }}</td>
                                         <td class="px-4 py-3 whitespace-nowrap text-gray-600 text-[13px]">{{
                                             tx.volume.toLocaleString('id-ID') }}</td>
                                         <td class="px-4 py-3 whitespace-nowrap text-gray-600 text-[13px]">{{
@@ -520,7 +519,7 @@ const logDotColor: Record<string, string> = {
                                     <p class="text-[12px] text-gray-400">{{ log.user }}</p>
                                 </div>
                                 <span class="shrink-0 text-[12px] text-gray-400 whitespace-nowrap">{{ log.waktu
-                                    }}</span>
+                                }}</span>
                             </div>
                             <div v-if="activityLogs.length === 0" class="py-6 text-center text-sm text-gray-400">
                                 Belum ada aktivitas
@@ -550,7 +549,7 @@ const logDotColor: Record<string, string> = {
                             <div>
                                 <p class="text-[14px] font-semibold text-[#101010]">{{ supplier.nama }}</p>
                                 <p class="text-[12px] text-gray-400">{{ supplier.kode }} · {{ supplier.city_name ?? '—'
-                                    }}</p>
+                                }}</p>
                             </div>
                         </div>
 

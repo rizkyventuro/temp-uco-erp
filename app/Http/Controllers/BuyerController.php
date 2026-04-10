@@ -262,11 +262,13 @@ class BuyerController extends Controller
 
         $request->validate([
             'alasan_nonaktif' => 'nullable|string|max:255',
+            'catatan'         => 'nullable|string',
         ]);
 
         $buyer->update([
             'is_active'       => !$buyer->is_active,
             'alasan_nonaktif' => $buyer->is_active ? ($request->alasan_nonaktif ?? null) : null,
+            'catatan'         => $buyer->is_active ? ($request->catatan ?? null) : null,
         ]);
 
         return redirect()->back()->with(

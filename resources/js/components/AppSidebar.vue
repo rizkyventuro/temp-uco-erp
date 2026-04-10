@@ -51,7 +51,7 @@ const handleLogout = () => {
 const masterDataItems = [
     { title: 'Supplier', href: '/master-data/supplier' },
     { title: 'Buyer (Customer)', href: '/master-data/buyer' },
-    { title: 'Gudang / Tank', href: '/master-data/gudang' },
+    { title: 'Gudang / Tank', href: '/master-data/warehouse' },
 ];
 
 const isMasterDataActive = computed(() =>

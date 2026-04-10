@@ -471,11 +471,13 @@ class SupplierController extends Controller
 
         $request->validate([
             'alasan_nonaktif' => 'nullable|string|max:255',
+            'catatan'         => 'nullable|string',
         ]);
 
         $supplier->update([
             'is_active'       => ! $supplier->is_active,
             'alasan_nonaktif' => $supplier->is_active ? ($request->alasan_nonaktif ?? null) : null,
+            'catatan'         => $supplier->is_active ? ($request->catatan ?? null) : null,
         ]);
 
         return redirect()->back()->with(

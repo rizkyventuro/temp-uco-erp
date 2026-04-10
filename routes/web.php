@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ManagementUserController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\WarehouseController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -59,6 +60,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::patch('/{buyer}', [BuyerController::class, 'update'])->name('update');
             Route::patch('/{buyer}/toggle-status', [BuyerController::class, 'toggleStatus'])->name('toggle-status');
             Route::delete('/{buyer}', [BuyerController::class, 'destroy'])->name('destroy');
+        });
+
+        Route::prefix('warehouse')->name('warehouse.')->group(function () {
+            Route::get('/',          [WarehouseController::class, 'index'])->name('index');
+            Route::post('/',         [WarehouseController::class, 'store'])->name('store');
+            Route::post('/transfer', [WarehouseController::class, 'transfer'])->name('transfer');
+            Route::get('/{id}',      [WarehouseController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [WarehouseController::class, 'edit'])->name('edit');
+            Route::patch('/{id}',    [WarehouseController::class, 'update'])->name('update');
+            Route::delete('/{id}',   [WarehouseController::class, 'destroy'])->name('destroy');
+            Route::patch('/{id}/toggle-status', [WarehouseController::class, 'toggleStatus'])
+                ->name('toggle-status');
         });
     });
 });

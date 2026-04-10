@@ -202,16 +202,24 @@ const textareaClass = (hasError: boolean) => [
                         </div>
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">No. Telepon</Label>
-                            <div class="flex gap-2">
+                            <div class="flex items-center h-[45px] rounded-md border bg-white overflow-hidden"
+                                :class="form.errors.telepon ? 'border-red-400' : 'border-input'">
                                 <span
-                                    class="flex h-10 items-center rounded-md border border-input bg-gray-50 px-3 text-sm text-gray-500 shrink-0">
+                                    class="flex items-center px-3 text-sm text-gray-500 shrink-0 border-r border-gray-200 h-full bg-white">
                                     +62
                                 </span>
-                                <Input v-model="form.telepon" placeholder="Masukkan nomor telepon anda"
-                                    :class="['flex-1', { 'border-red-400': form.errors.telepon }]" />
+                                <input v-model="form.telepon" placeholder="Masukkan nomor telepon"
+                                    class="flex-1 h-full px-3 text-sm text-gray-700 placeholder-gray-400 bg-transparent border-none outline-none focus:ring-0" />
+                                <span class="flex items-center pr-3  shrink-0">
+                                    <svg width="24" height="24" viewBox="0 0 24 24"
+                                        class="rounded-full overflow-hidden">
+                                        <rect width="24" height="12" fill="#FF0000" />
+                                        <rect y="12" width="24" height="12" fill="#F9F9F9" />
+                                    </svg>
+                                </span>
                             </div>
                             <span v-if="form.errors.telepon" class="text-xs text-red-500">{{ form.errors.telepon
-                                }}</span>
+                            }}</span>
                         </div>
                     </div>
 
@@ -232,7 +240,7 @@ const textareaClass = (hasError: boolean) => [
                                 </option>
                             </select>
                             <span v-if="form.errors.city_id" class="text-xs text-red-500">{{ form.errors.city_id
-                                }}</span>
+                            }}</span>
                         </div>
                     </div>
 
@@ -284,7 +292,7 @@ const textareaClass = (hasError: boolean) => [
                             <Input v-model="form.website" placeholder="www.perusahaan.com"
                                 :class="inputClass(!!form.errors.website)" />
                             <span v-if="form.errors.website" class="text-xs text-red-500">{{ form.errors.website
-                                }}</span>
+                            }}</span>
                         </div>
                     </div>
 

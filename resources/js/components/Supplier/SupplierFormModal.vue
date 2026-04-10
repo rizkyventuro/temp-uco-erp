@@ -211,7 +211,8 @@ const textareaClass = (hasError: boolean) => [
 
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">Kode Supplier</Label>
-                            <Input :model-value="displayKode" disabled class="bg-gray-50 text-gray-500 cursor-not-allowed" />
+                            <Input :model-value="displayKode" disabled
+                                class="bg-gray-50 text-gray-500 cursor-not-allowed" />
                         </div>
                     </div>
 
@@ -219,16 +220,24 @@ const textareaClass = (hasError: boolean) => [
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">No. Telepon</Label>
-                            <div class="flex gap-2">
+                            <div class="flex items-center h-[45px] rounded-md border bg-white overflow-hidden"
+                                :class="form.errors.telepon ? 'border-red-400' : 'border-input'">
                                 <span
-                                    class="flex h-10 items-center rounded-md border border-input bg-gray-50 px-3 text-sm text-gray-500 shrink-0">
+                                    class="flex items-center px-3 text-sm text-gray-500 shrink-0 border-r border-gray-200 h-full bg-white">
                                     +62
                                 </span>
-                                <Input v-model="form.telepon" placeholder="Input your phone"
-                                    :class="['flex-1', { 'border-red-400': form.errors.telepon }]" />
+                                <input v-model="form.telepon" placeholder="Masukkan nomor telepon"
+                                    class="flex-1 h-full px-3 text-sm text-gray-700 placeholder-gray-400 bg-transparent border-none outline-none focus:ring-0" />
+                                <span class="flex items-center pr-3  shrink-0">
+                                    <svg width="24" height="24" viewBox="0 0 24 24"
+                                        class="rounded-full overflow-hidden">
+                                        <rect width="24" height="12" fill="#FF0000" />
+                                        <rect y="12" width="24" height="12" fill="#F9F9F9" />
+                                    </svg>
+                                </span>
                             </div>
                             <span v-if="form.errors.telepon" class="text-xs text-red-500">{{ form.errors.telepon
-                                }}</span>
+                            }}</span>
                         </div>
 
                         <div class="grid gap-1.5">
@@ -250,7 +259,7 @@ const textareaClass = (hasError: boolean) => [
                                 </option>
                             </select>
                             <span v-if="form.errors.city_id" class="text-xs text-red-500">{{ form.errors.city_id
-                                }}</span>
+                            }}</span>
                         </div>
 
                         <div class="grid gap-1.5">
@@ -287,7 +296,7 @@ const textareaClass = (hasError: boolean) => [
                             <Input v-model="form.no_rekening" placeholder="nomor rekening"
                                 :class="inputClass(!!form.errors.no_rekening)" />
                             <span v-if="form.errors.no_rekening" class="text-xs text-red-500">{{ form.errors.no_rekening
-                                }}</span>
+                            }}</span>
                         </div>
 
                         <div class="grid gap-1.5">
@@ -295,7 +304,7 @@ const textareaClass = (hasError: boolean) => [
                             <Input v-model="form.atas_nama" placeholder="Atas nama pemilik rekening"
                                 :class="inputClass(!!form.errors.atas_nama)" />
                             <span v-if="form.errors.atas_nama" class="text-xs text-red-500">{{ form.errors.atas_nama
-                                }}</span>
+                            }}</span>
                         </div>
                     </div>
 
@@ -336,7 +345,7 @@ const textareaClass = (hasError: boolean) => [
                             <Input v-model="form.termin_hari" type="number" min="1" placeholder="30"
                                 :class="inputClass(!!form.errors.termin_hari)" />
                             <span v-if="form.errors.termin_hari" class="text-xs text-red-500">{{ form.errors.termin_hari
-                                }}</span>
+                            }}</span>
                         </div>
                     </div>
 
@@ -390,7 +399,7 @@ const textareaClass = (hasError: boolean) => [
                                 @change="handleFileChange" />
                         </div>
                         <span v-if="form.errors.foto" class="mt-1 block text-xs text-red-500">{{ form.errors.foto
-                            }}</span>
+                        }}</span>
                     </div>
 
                 </div>
