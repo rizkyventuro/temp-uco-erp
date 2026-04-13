@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             PermissionGroupSeeder::class,
             ReferensiLocationSeeder::class,
+            BankAccountSeeder::class,
         ]);
     }
 }
