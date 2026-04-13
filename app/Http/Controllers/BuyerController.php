@@ -14,7 +14,7 @@ class BuyerController extends Controller
 {
     public function index(Request $request)
     {
-        $sortable = ['nama', 'kode', 'harga_jual_default', 'total_penjualan', 'total_piutang', 'created_at'];
+        $sortable = ['name', 'code', 'default_selling_price', 'total_sales', 'total_receivable', 'created_at'];
         $sortCol  = in_array($request->sort, $sortable) ? $request->sort : 'created_at';
         $sortDir  = $request->direction === 'asc' ? 'asc' : 'desc';
 
@@ -24,10 +24,10 @@ class BuyerController extends Controller
                 fn($q, $search) =>
                 $q->where(
                     fn($q) =>
-                    $q->where('nama', 'like', "%{$search}%")
-                        ->orWhere('kode', 'like', "%{$search}%")
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('code', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%")
-                        ->orWhere('telepon', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%")
                 )
             )
             ->when($request->status, function ($q, $status) {
@@ -37,7 +37,7 @@ class BuyerController extends Controller
                     default    => null,
                 };
             })
-            ->when($request->tipe, fn($q, $tipe) => $q->where('tipe', $tipe))
+            ->when($request->type, fn($q, $type) => $q->where('type', $type))
             ->when($request->city_id, fn($q, $cityId) => $q->where('city_id', $cityId))
             ->orderBy($sortCol, $sortDir)
             ->paginate($request->input('perPage', 10))
@@ -46,22 +46,22 @@ class BuyerController extends Controller
 
         $stats = [
             'total'    => Buyer::count(),
-            'aktif'    => Buyer::active()->count(),
-            'nonaktif' => Buyer::inactive()->count(),
+            'active'   => Buyer::active()->count(),
+            'inactive' => Buyer::inactive()->count(),
         ];
 
         $cities = City::whereIn('id', Buyer::whereNotNull('city_id')->pluck('city_id'))
-            ->orderBy('nama')
-            ->get(['id', 'nama as name']);
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
-        $allCities = City::orderBy('nama')->get(['id', 'nama as name']);
+        $allCities = City::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('masterData/buyer/ListBuyer', [
             'buyers'    => $buyers,
             'stats'     => $stats,
             'cities'    => $cities,
             'allCities' => $allCities,
-            'filters'   => $request->only(['search', 'perPage', 'status', 'tipe', 'city_id', 'sort', 'direction']),
+            'filters'   => $request->only(['search', 'perPage', 'status', 'type', 'city_id', 'sort', 'direction']),
         ]);
     }
 
@@ -75,7 +75,7 @@ class BuyerController extends Controller
     public function edit($id)
     {
         $buyer     = Buyer::with('city')->findOrFail($id);
-        $allCities = City::orderBy('nama')->get(['id', 'nama as name']);
+        $allCities = City::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('masterData/buyer/ShowBuyer', array_merge(
             $this->buildShowPayload($buyer),
@@ -85,12 +85,11 @@ class BuyerController extends Controller
 
     private function buildShowPayload(Buyer $buyer): array
     {
-        // ── Static Stats (ganti dengan query real nanti) ─────────────
-        $totalPenjualan  = 520000000;
-        $jumlahTransaksi = 24;
+        $totalSales      = 520000000;
+        $transactionCount = 24;
         $totalVolume     = 118181;
-        $hargaRataRata   = 4400;
-        $piutangAktif    = 22000000;
+        $avgPrice        = 4400;
+        $activeReceivable = 22000000;
         $rating          = 4.8;
 
         $ratingLabel = match (true) {
@@ -100,7 +99,6 @@ class BuyerController extends Controller
             default        => 'Kurang',
         };
 
-        // ── Volume Chart Dummy (12 bulan) ────────────────────────────
         $volumeChart = collect([
             ['label' => 'Jan', 'volume' => 8000],
             ['label' => 'Feb', 'volume' => 5000],
@@ -116,13 +114,12 @@ class BuyerController extends Controller
             ['label' => 'Des', 'volume' => 38000],
         ]);
 
-        // ── Dummy Transaksi ──────────────────────────────────────────
         $transactions = [
-            ['id' => '1', 'no_dokumen' => 'BM-2024-001', 'tanggal' => '28 Jun 2026', 'gudang' => 'Gudang Pusat', 'volume' => 1200, 'harga' => 4500, 'total' => 5400000, 'status' => 'Lunas'],
-            ['id' => '2', 'no_dokumen' => 'BM-2024-002', 'tanggal' => '28 Jun 2026', 'gudang' => 'Gudang Pusat', 'volume' => 1200, 'harga' => 4500, 'total' => 5400000, 'status' => 'Hutang'],
-            ['id' => '3', 'no_dokumen' => 'BM-2024-003', 'tanggal' => '28 Jun 2026', 'gudang' => 'Gudang Pusat', 'volume' => 1200, 'harga' => 4500, 'total' => 5400000, 'status' => 'Lunas'],
-            ['id' => '4', 'no_dokumen' => 'BM-2024-004', 'tanggal' => '28 Jun 2026', 'gudang' => 'Gudang Pusat', 'volume' => 1200, 'harga' => 4500, 'total' => 5400000, 'status' => 'Lunas'],
-            ['id' => '5', 'no_dokumen' => 'BM-2024-005', 'tanggal' => '28 Jun 2026', 'gudang' => 'Gudang Pusat', 'volume' => 1200, 'harga' => 4500, 'total' => 5400000, 'status' => 'Lunas'],
+            ['id' => '1', 'document_number' => 'BM-2024-001', 'date' => '28 Jun 2026', 'warehouse' => 'Gudang Pusat', 'volume' => 1200, 'price' => 4500, 'total' => 5400000, 'status' => 'Lunas'],
+            ['id' => '2', 'document_number' => 'BM-2024-002', 'date' => '28 Jun 2026', 'warehouse' => 'Gudang Pusat', 'volume' => 1200, 'price' => 4500, 'total' => 5400000, 'status' => 'Hutang'],
+            ['id' => '3', 'document_number' => 'BM-2024-003', 'date' => '28 Jun 2026', 'warehouse' => 'Gudang Pusat', 'volume' => 1200, 'price' => 4500, 'total' => 5400000, 'status' => 'Lunas'],
+            ['id' => '4', 'document_number' => 'BM-2024-004', 'date' => '28 Jun 2026', 'warehouse' => 'Gudang Pusat', 'volume' => 1200, 'price' => 4500, 'total' => 5400000, 'status' => 'Lunas'],
+            ['id' => '5', 'document_number' => 'BM-2024-005', 'date' => '28 Jun 2026', 'warehouse' => 'Gudang Pusat', 'volume' => 1200, 'price' => 4500, 'total' => 5400000, 'status' => 'Lunas'],
         ];
 
         $txPaginated = [
@@ -132,51 +129,48 @@ class BuyerController extends Controller
             'total'        => count($transactions),
         ];
 
-        // ── Ringkasan Piutang ────────────────────────────────────────
-        $sudahDiterima  = $totalPenjualan - $piutangAktif;
-        $persenDiterima = round(($piutangAktif / $totalPenjualan) * 100);
+        $alreadyReceived  = $totalSales - $activeReceivable;
+        $receivablePercent = round(($activeReceivable / $totalSales) * 100);
 
-        // ── Produk yang Dibeli Dummy ─────────────────────────────────
-        $produkDibeli = [
-            ['nama' => 'Minyak Jelantah Grade A', 'persen' => 60],
-            ['nama' => 'Minyak Jelantah Grade B', 'persen' => 40],
+        $productsBought = [
+            ['name' => 'Minyak Jelantah Grade A', 'percent' => 60],
+            ['name' => 'Minyak Jelantah Grade B', 'percent' => 40],
         ];
 
-        // ── Activity Logs Dummy ──────────────────────────────────────
         $activityLogs = [
-            ['id' => '1', 'message' => 'Penjualan BK-042 Rp 22 Jt — Piutang dicatat', 'user' => 'Admin Kartono', 'waktu' => now()->subHours(2)->translatedFormat('d M Y H:i'), 'type' => 'warning'],
-            ['id' => '2', 'message' => 'Piutang BK-030 Rp 35.2 Jt dilunasi',          'user' => 'Admin Kartono', 'waktu' => now()->subHours(2)->translatedFormat('d M Y H:i'), 'type' => 'success'],
-            ['id' => '3', 'message' => "Buyer dinonaktifkan — Tidak aktif beroperasi",  'user' => 'Admin Kartono', 'waktu' => now()->subHours(2)->translatedFormat('d M Y H:i'), 'type' => 'danger'],
+            ['id' => '1', 'message' => 'Penjualan BK-042 Rp 22 Jt — Piutang dicatat', 'user' => 'Admin Kartono', 'time' => now()->subHours(2)->translatedFormat('d M Y H:i'), 'type' => 'warning'],
+            ['id' => '2', 'message' => 'Piutang BK-030 Rp 35.2 Jt dilunasi',          'user' => 'Admin Kartono', 'time' => now()->subHours(2)->translatedFormat('d M Y H:i'), 'type' => 'success'],
+            ['id' => '3', 'message' => "Buyer dinonaktifkan — Tidak aktif beroperasi",  'user' => 'Admin Kartono', 'time' => now()->subHours(2)->translatedFormat('d M Y H:i'), 'type' => 'danger'],
         ];
 
         return [
             'buyer' => $this->formatBuyer($buyer),
 
             'stats' => [
-                'total_penjualan'     => 'Rp ' . number_format($totalPenjualan, 0, ',', '.'),
-                'total_penjualan_sub' => $jumlahTransaksi . ' transaksi',
-                'piutang_aktif'       => 'Rp ' . number_format($piutangAktif, 0, ',', '.'),
-                'piutang_aktif_sub'   => $piutangAktif > 0 ? 'Tidak dibayar' : 'Tidak ada piutang',
-                'harga_rata_rata'     => number_format($hargaRataRata, 0, ',', '.'),
-                'harga_rata_rata_sub' => 'per kg (Rp)',
-                'total_volume'        => number_format($totalVolume, 0, ',', '.'),
-                'total_volume_sub'    => 'kg terjual',
-                'rating'              => number_format($rating, 1),
-                'rating_sub'          => $ratingLabel,
+                'total_sales'          => 'Rp ' . number_format($totalSales, 0, ',', '.'),
+                'total_sales_sub'      => $transactionCount . ' transaksi',
+                'active_receivable'    => 'Rp ' . number_format($activeReceivable, 0, ',', '.'),
+                'active_receivable_sub' => $activeReceivable > 0 ? 'Tidak dibayar' : 'Tidak ada piutang',
+                'avg_price'            => number_format($avgPrice, 0, ',', '.'),
+                'avg_price_sub'        => 'per kg (Rp)',
+                'total_volume'         => number_format($totalVolume, 0, ',', '.'),
+                'total_volume_sub'     => 'kg terjual',
+                'rating'               => number_format($rating, 1),
+                'rating_sub'           => $ratingLabel,
             ],
 
             'volumeChart'  => $volumeChart,
             'transactions' => $txPaginated,
 
-            'ringkasanPiutang' => [
-                'total_penjualan' => 'Rp ' . number_format($totalPenjualan, 0, ',', '.'),
-                'sudah_diterima'  => 'Rp ' . number_format($sudahDiterima, 0, ',', '.'),
-                'piutang_aktif'   => 'Rp ' . number_format($piutangAktif, 0, ',', '.'),
-                'persen_diterima' => $persenDiterima,
+            'receivableSummary' => [
+                'total_sales'       => 'Rp ' . number_format($totalSales, 0, ',', '.'),
+                'already_received'  => 'Rp ' . number_format($alreadyReceived, 0, ',', '.'),
+                'active_receivable' => 'Rp ' . number_format($activeReceivable, 0, ',', '.'),
+                'receivable_percent' => $receivablePercent,
             ],
 
-            'produkDibeli' => $produkDibeli,
-            'activityLogs' => $activityLogs,
+            'productsBought' => $productsBought,
+            'activityLogs'   => $activityLogs,
 
             'toggleUrl' => route('master-data.buyer.toggle-status', $buyer->id),
             'editUrl'   => route('master-data.buyer.edit', $buyer->id),
@@ -186,27 +180,27 @@ class BuyerController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama'               => 'required|string|max:255',
-            'tipe'               => 'nullable|in:PT,CV,UD,Perorangan',
-            'telepon'            => 'nullable|string|max:20',
-            'email'              => 'nullable|email|max:255',
-            'city_id'            => 'nullable|exists:cities,id',
-            'harga_jual_default' => 'nullable|numeric|min:0',
-            'limit_kredit'       => 'nullable|numeric|min:0',
-            'termin_hari'        => 'nullable|integer|min:1',
-            'pic'                => 'nullable|string|max:255',
-            'npwp'               => 'nullable|string|max:30',
-            'website'            => 'nullable|string|max:255',
-            'alamat'             => 'nullable|string',
-            'catatan'            => 'nullable|string',
-            'foto'               => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'name'                  => 'required|string|max:255',
+            'type'                  => 'nullable|in:PT,CV,UD,Perorangan',
+            'phone'                 => 'nullable|string|max:20',
+            'email'                 => 'nullable|email|max:255',
+            'city_id'               => 'nullable|exists:cities,id',
+            'default_selling_price' => 'nullable|numeric|min:0',
+            'credit_limit'          => 'nullable|numeric|min:0',
+            'payment_term_days'     => 'nullable|integer|min:1',
+            'pic'                   => 'nullable|string|max:255',
+            'npwp'                  => 'nullable|string|max:30',
+            'website'               => 'nullable|string|max:255',
+            'address'               => 'nullable|string',
+            'notes'                 => 'nullable|string',
+            'foto'                  => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
         [$fotoPath, $fotoDisk] = $this->uploadFoto($request);
 
         DB::transaction(function () use ($validated, $fotoPath, $fotoDisk) {
             Buyer::create(array_merge($validated, [
-                'kode'      => Buyer::generateKode(),
+                'code'      => Buyer::generateCode(),
                 'is_active' => true,
                 'foto_path' => $fotoPath,
                 'foto_disk' => $fotoDisk,
@@ -222,20 +216,20 @@ class BuyerController extends Controller
         $buyer = Buyer::findOrFail($id);
 
         $validated = $request->validate([
-            'nama'               => 'sometimes|required|string|max:255',
-            'tipe'               => 'nullable|in:PT,CV,UD,Perorangan',
-            'telepon'            => 'nullable|string|max:20',
-            'email'              => 'nullable|email|max:255',
-            'city_id'            => 'nullable|exists:cities,id',
-            'harga_jual_default' => 'nullable|numeric|min:0',
-            'limit_kredit'       => 'nullable|numeric|min:0',
-            'termin_hari'        => 'nullable|integer|min:1',
-            'pic'                => 'nullable|string|max:255',
-            'npwp'               => 'nullable|string|max:30',
-            'website'            => 'nullable|string|max:255',
-            'alamat'             => 'nullable|string',
-            'catatan'            => 'nullable|string',
-            'foto'               => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'name'                  => 'sometimes|required|string|max:255',
+            'type'                  => 'nullable|in:PT,CV,UD,Perorangan',
+            'phone'                 => 'nullable|string|max:20',
+            'email'                 => 'nullable|email|max:255',
+            'city_id'               => 'nullable|exists:cities,id',
+            'default_selling_price' => 'nullable|numeric|min:0',
+            'credit_limit'          => 'nullable|numeric|min:0',
+            'payment_term_days'     => 'nullable|integer|min:1',
+            'pic'                   => 'nullable|string|max:255',
+            'npwp'                  => 'nullable|string|max:30',
+            'website'               => 'nullable|string|max:255',
+            'address'               => 'nullable|string',
+            'notes'                 => 'nullable|string',
+            'foto'                  => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
         if ($request->hasFile('foto')) {
@@ -261,14 +255,14 @@ class BuyerController extends Controller
         $buyer = Buyer::findOrFail($id);
 
         $request->validate([
-            'alasan_nonaktif' => 'nullable|string|max:255',
-            'catatan'         => 'nullable|string',
+            'inactive_reason' => 'nullable|string|max:255',
+            'notes'           => 'nullable|string',
         ]);
 
         $buyer->update([
             'is_active'       => !$buyer->is_active,
-            'alasan_nonaktif' => $buyer->is_active ? ($request->alasan_nonaktif ?? null) : null,
-            'catatan'         => $buyer->is_active ? ($request->catatan ?? null) : null,
+            'inactive_reason' => $buyer->is_active ? ($request->inactive_reason ?? null) : null,
+            'notes'           => $buyer->is_active ? ($request->notes ?? null) : null,
         ]);
 
         return redirect()->back()->with(
@@ -295,26 +289,26 @@ class BuyerController extends Controller
     private function formatBuyer(Buyer $b): array
     {
         return [
-            'id'                 => $b->id,
-            'kode'               => $b->kode,
-            'nama'               => $b->nama,
-            'tipe'               => $b->tipe,
-            'telepon'            => $b->telepon,
-            'email'              => $b->email,
-            'city_id'            => $b->city_id,
-            'city_name'          => $b->city?->nama,
-            'harga_jual_default' => $b->harga_jual_default,
-            'limit_kredit'       => $b->limit_kredit,
-            'termin_hari'        => $b->termin_hari,
-            'pic'                => $b->pic,
-            'npwp'               => $b->npwp,
-            'website'            => $b->website,
-            'alamat'             => $b->alamat,
-            'catatan'            => $b->catatan,
-            'is_active'          => $b->is_active,
-            'alasan_nonaktif'    => $b->alasan_nonaktif,
-            'foto_url'           => $b->foto_url,
-            'inisials'           => $b->inisials,
+            'id'                    => $b->id,
+            'code'                  => $b->code,
+            'name'                  => $b->name,
+            'type'                  => $b->type,
+            'phone'                 => $b->phone,
+            'email'                 => $b->email,
+            'city_id'               => $b->city_id,
+            'city_name'             => $b->city?->name,
+            'default_selling_price' => $b->default_selling_price,
+            'credit_limit'          => $b->credit_limit,
+            'payment_term_days'     => $b->payment_term_days,
+            'pic'                   => $b->pic,
+            'npwp'                  => $b->npwp,
+            'website'               => $b->website,
+            'address'               => $b->address,
+            'notes'                 => $b->notes,
+            'is_active'             => $b->is_active,
+            'inactive_reason'       => $b->inactive_reason,
+            'photo_url'             => $b->foto_url,
+            'initials'              => $b->initials,
         ];
     }
 }

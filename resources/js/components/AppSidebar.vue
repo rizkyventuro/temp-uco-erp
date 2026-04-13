@@ -3,7 +3,7 @@ import { Link, router } from '@inertiajs/vue3';
 import {
     ChevronDown, LogOut, Shield, Settings,
 } from 'lucide-vue-next';
- 
+
 // Custom icon components
 import IconDashboard from '@/components/icons/menu/IconDashboard.vue';
 import IconMasterData from '@/components/icons/menu/iconMasterData.vue';
@@ -16,7 +16,7 @@ import IconPiutang from '@/components/icons/menu/iconPiutang.vue';
 import IconKas from '@/components/icons/menu/iconKas.vue';
 import IconLaporan from '@/components/icons/menu/iconLaporan.vue';
 import IconManagementUser from '@/components/icons/menu/iconManagementUser.vue';
- 
+
 import { computed, ref } from 'vue';
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -37,7 +37,7 @@ import { dashboard, logout } from '@/routes';
 import AppLogo from './AppLogo.vue';
 import AppLogoIcon from './AppLogoIcon.vue';
 import { useSidebar } from '@/components/ui/sidebar';
- 
+
 const { can } = usePermission();
 const { isCurrentUrl } = useCurrentUrl();
 const { state } = useSidebar();
@@ -59,16 +59,16 @@ const isMasterDataActive = computed(() =>
 );
 
 const isMasterDataOpen = ref(isMasterDataActive.value);
- 
+
 const mainMenuItems = [
-    { title: 'Barang Masuk', href: '/barang-masuk', icon: IconBarangMasuk },
-    { title: 'Barang Keluar', href: '/barang-keluar', icon: IconBarangKeluar },
-    { title: 'Transfer Stok', href: '/transfer-stok', icon: IconTransferStok },
-    { title: 'Stok / Opname', href: '/stok-opname', icon: IconOpname },
-    { title: 'Hutang (AP)', href: '/hutang', icon: IconHutang },
-    { title: 'Piutang (AR)', href: '/piutang', icon: IconPiutang },
-    { title: 'Kas / Bank', href: '/kas-bank', icon: IconKas },
-    { title: 'Laporan', href: '/laporan', icon: IconLaporan },
+    { title: 'Barang Masuk', href: '/goods-receipt', icon: IconBarangMasuk },
+    { title: 'Barang Keluar', href: '/goods-issue', icon: IconBarangKeluar },
+    { title: 'Transfer Stok', href: '/stock-transfer', icon: IconTransferStok },
+    { title: 'Stok / Opname', href: '/stock-opname', icon: IconOpname },
+    { title: 'Hutang (AP)', href: '/accounts-payable', icon: IconHutang },
+    { title: 'Piutang (AR)', href: '/accounts-receivable', icon: IconPiutang },
+    { title: 'Kas / Bank', href: '/cash-bank', icon: IconKas },
+    { title: 'Laporan', href: '/reports', icon: IconLaporan },
     { title: 'Management User', href: '/management-user', icon: IconManagementUser },
     { title: 'Management Role', href: '/management-role', icon: Shield },
     { title: 'Pengaturan', href: '/pengaturan', icon: Settings },

@@ -13,22 +13,22 @@ class Buyer extends Model
     use HasFactory, HasUuids, SoftDeletes;
 
     protected $fillable = [
-        'kode',
-        'nama',
-        'tipe',
-        'telepon',
+        'code',
+        'name',
+        'type',
+        'phone',
         'email',
         'city_id',
-        'harga_jual_default',
-        'limit_kredit',
-        'termin_hari',
+        'default_selling_price',
+        'credit_limit',
+        'payment_term_days',
         'pic',
         'npwp',
         'website',
-        'alamat',
-        'catatan',
+        'address',
+        'notes',
         'is_active',
-        'alasan_nonaktif',
+        'inactive_reason',
         'foto_path',
         'foto_disk',
         'created_by',
@@ -37,9 +37,9 @@ class Buyer extends Model
     ];
 
     protected $casts = [
-        'is_active'          => 'boolean',
-        'harga_jual_default' => 'decimal:2',
-        'limit_kredit'       => 'decimal:2',
+        'is_active'            => 'boolean',
+        'default_selling_price' => 'decimal:2',
+        'credit_limit'         => 'decimal:2',
     ];
 
     public function scopeActive($query)
@@ -64,20 +64,20 @@ class Buyer extends Model
         return Storage::disk($disk)->url($this->foto_path);
     }
 
-    public function getInisialsAttribute(): string
+    public function getInitialsAttribute(): string
     {
-        return collect(explode(' ', $this->nama))
+        return collect(explode(' ', $this->name))
             ->take(2)
             ->map(fn($w) => strtoupper($w[0] ?? ''))
             ->join('');
     }
 
-    public static function generateKode(): string
+    public static function generateCode(): string
     {
         $last = static::withTrashed()
-            ->where('kode', 'like', 'BUY-%')
-            ->orderByDesc('kode')
-            ->value('kode');
+            ->where('code', 'like', 'BUY-%')
+            ->orderByDesc('code')
+            ->value('code');
 
         $next = $last ? ((int) substr($last, 4)) + 1 : 1;
         return 'BUY-' . str_pad($next, 3, '0', STR_PAD_LEFT);

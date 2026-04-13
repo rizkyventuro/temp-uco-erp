@@ -28,48 +28,48 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
 
 interface Buyer {
     id: string;
-    kode: string;
-    nama: string;
-    tipe?: 'PT' | 'CV' | 'UD' | 'Perorangan' | null;
-    telepon?: string | null;
+    code: string;
+    name: string;
+    type?: 'PT' | 'CV' | 'UD' | 'Perorangan' | null;
+    phone?: string | null;
     email?: string | null;
     city_id?: number | null;
     city_name?: string | null;
-    harga_jual_default?: number | null;
-    limit_kredit?: number | null;
-    termin_hari?: number | null;
+    default_selling_price?: number | null;
+    credit_limit?: number | null;
+    payment_term_days?: number | null;
     pic?: string | null;
     npwp?: string | null;
     website?: string | null;
-    alamat?: string | null;
-    catatan?: string | null;
+    address?: string | null;
+    notes?: string | null;
     is_active: boolean;
-    alasan_nonaktif?: string | null;
-    foto_url?: string | null;
-    inisials: string;
+    inactive_reason?: string | null;
+    photo_url?: string | null;
+    initials: string;
 }
 
 interface Transaction {
     id: string;
-    no_dokumen: string;
-    tanggal: string;
-    gudang: string;
+    document_number: string;
+    date: string;
+    warehouse: string;
     volume: number;
-    harga: number;
+    price: number;
     total: number;
     status: string;
 }
 
-interface ProdukDibeli {
-    nama: string;
-    persen: number;
+interface ProductBought {
+    name: string;
+    percent: number;
 }
 
 interface ActivityLog {
     id: string;
     message: string;
     user: string;
-    waktu: string;
+    time: string;
     type: 'success' | 'danger' | 'warning' | 'info';
 }
 
@@ -78,12 +78,12 @@ interface ActivityLog {
 const props = defineProps<{
     buyer: Buyer;
     stats: {
-        total_penjualan: string;
-        total_penjualan_sub: string;
-        piutang_aktif: string;
-        piutang_aktif_sub: string;
-        harga_rata_rata: string;
-        harga_rata_rata_sub: string;
+        total_sales: string;
+        total_sales_sub: string;
+        active_receivable: string;
+        active_receivable_sub: string;
+        avg_price: string;
+        avg_price_sub: string;
         total_volume: string;
         total_volume_sub: string;
         rating: string;
@@ -96,13 +96,13 @@ const props = defineProps<{
         last_page: number;
         total: number;
     };
-    ringkasanPiutang: {
-        total_penjualan: string;
-        sudah_diterima: string;
-        piutang_aktif: string;
-        persen_diterima: number;
+    receivableSummary: {
+        total_sales: string;
+        already_received: string;
+        active_receivable: string;
+        receivable_percent: number;
     };
-    produkDibeli: ProdukDibeli[];
+    productsBought: ProductBought[];
     activityLogs: ActivityLog[];
     toggleUrl: string;
     editUrl: string;
@@ -122,22 +122,22 @@ onMounted(() => {
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Master Data', href: '#' },
     { title: 'Buyer (Customer)', href: '/master-data/buyer' },
-    { title: props.buyer.nama, href: '#' },
+    { title: props.buyer.name, href: '#' },
 ];
 
 // ── Stat cards ─────────────────────────────────────────────────
 
 const statCards = computed(() => [
-    { label: 'Total Penjualan', value: props.stats.total_penjualan, sub: props.stats.total_penjualan_sub, iconType: 'penjualan' },
-    { label: 'Piutang Aktif', value: props.stats.piutang_aktif, sub: props.stats.piutang_aktif_sub, iconType: 'piutang' },
-    { label: 'Harga Jual Rata-rata', value: props.stats.harga_rata_rata, sub: props.stats.harga_rata_rata_sub, iconType: 'avg_price' },
+    { label: 'Total Penjualan', value: props.stats.total_sales, sub: props.stats.total_sales_sub, iconType: 'penjualan' },
+    { label: 'Piutang Aktif', value: props.stats.active_receivable, sub: props.stats.active_receivable_sub, iconType: 'piutang' },
+    { label: 'Harga Jual Rata-rata', value: props.stats.avg_price, sub: props.stats.avg_price_sub, iconType: 'avg_price' },
     { label: 'Total Volume', value: props.stats.total_volume, sub: props.stats.total_volume_sub, iconType: 'volume' },
-    { label: 'Rating yer', value: props.stats.rating, sub: props.stats.rating_sub, iconType: 'star' },
+    { label: 'Rating Buyer', value: props.stats.rating, sub: props.stats.rating_sub, iconType: 'star' },
 ]);
 
-// ── Tipe badge color ───────────────────────────────────────────
+// ── Type badge color ───────────────────────────────────────────
 
-const tipeColor: Record<string, string> = {
+const typeColor: Record<string, string> = {
     PT: 'bg-blue-50 text-blue-700',
     CV: 'bg-purple-50 text-purple-700',
     UD: 'bg-orange-50 text-orange-700',
@@ -194,8 +194,8 @@ const txFilterFields = computed(() => [
         ],
     },
     {
-        key: 'gudang', label: 'Gudang', type: 'select' as const,
-        options: [...new Set(props.transactions.data.map(t => t.gudang))]
+        key: 'warehouse', label: 'Gudang', type: 'select' as const,
+        options: [...new Set(props.transactions.data.map(t => t.warehouse))]
             .map(g => ({ label: g, value: g })),
     },
 ]);
@@ -205,14 +205,14 @@ const filteredTx = computed(() => {
     if (txSearch.value) {
         const q = txSearch.value.toLowerCase();
         data = data.filter(t =>
-            t.no_dokumen.toLowerCase().includes(q) ||
-            t.gudang.toLowerCase().includes(q),
+            t.document_number.toLowerCase().includes(q) ||
+            t.warehouse.toLowerCase().includes(q),
         );
     }
     if (txFilterValues.value.status)
         data = data.filter(t => t.status === txFilterValues.value.status);
-    if (txFilterValues.value.gudang)
-        data = data.filter(t => t.gudang === txFilterValues.value.gudang);
+    if (txFilterValues.value.warehouse)
+        data = data.filter(t => t.warehouse === txFilterValues.value.warehouse);
     return data;
 });
 
@@ -262,7 +262,7 @@ const logDotColor: Record<string, string> = {
 
 <template>
 
-    <Head :title="buyer.nama" />
+    <Head :title="buyer.name" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-col gap-5 p-6 bg-gray-50 pb-12">
 
@@ -278,17 +278,17 @@ const logDotColor: Record<string, string> = {
                 </button>
 
                 <div class="flex-1">
-                    <h1 class="text-[22px] font-bold text-[#101010]">{{ buyer.nama }}</h1>
+                    <h1 class="text-[22px] font-bold text-[#101010]">{{ buyer.name }}</h1>
                     <div class="flex items-center gap-2">
-                        <p class="text-sm text-gray-400">{{ buyer.kode }}</p>
+                        <p class="text-sm text-gray-400">{{ buyer.code }}</p>
                         <span class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium"
                             :class="buyer.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'">
                             {{ buyer.is_active ? 'Aktif' : 'Non-Aktif' }}
                         </span>
-                        <span v-if="buyer.tipe"
+                        <span v-if="buyer.type"
                             class="inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold"
-                            :class="tipeColor[buyer.tipe] ?? 'bg-gray-100 text-gray-700'">
-                            {{ buyer.tipe }}
+                            :class="typeColor[buyer.type] ?? 'bg-gray-100 text-gray-700'">
+                            {{ buyer.type }}
                         </span>
                     </div>
                 </div>
@@ -343,8 +343,9 @@ const logDotColor: Record<string, string> = {
                                 fill="#101010" />
                         </svg>
                     </div>
-                    <p class="text-[20px] font-bold tracking-tight text-[#101010] leading-tight">{{ stats.total_penjualan }}</p>
-                    <p class="mt-0.5 text-[12px] text-[#878787]">{{ stats.total_penjualan_sub }}</p>
+                    <p class="text-[20px] font-bold tracking-tight text-[#101010] leading-tight">{{
+                        stats.total_sales }}</p>
+                    <p class="mt-0.5 text-[12px] text-[#878787]">{{ stats.total_sales_sub }}</p>
                 </div>
 
                 <!-- Piutang Aktif -->
@@ -359,8 +360,10 @@ const logDotColor: Record<string, string> = {
                         </svg>
 
                     </div>
-                    <p class="text-[20px] font-bold tracking-tight text-[#101010] leading-tight">{{ stats.piutang_aktif }}</p>
-                    <p class="mt-0.5 text-[12px] text-[#878787]">{{ stats.piutang_aktif_sub }}</p>
+                    <p class="text-[20px] font-bold tracking-tight text-[#101010] leading-tight">{{
+                        stats.active_receivable
+                    }}</p>
+                    <p class="mt-0.5 text-[12px] text-[#878787]">{{ stats.active_receivable_sub }}</p>
                 </div>
 
                 <!-- Harga Jual Rata-rata -->
@@ -377,8 +380,9 @@ const logDotColor: Record<string, string> = {
                         </svg>
 
                     </div>
-                    <p class="text-[20px] font-bold tracking-tight text-[#101010] leading-tight">{{ stats.harga_rata_rata }}</p>
-                    <p class="mt-0.5 text-[12px] text-[#878787]">{{ stats.harga_rata_rata_sub }}</p>
+                    <p class="text-[20px] font-bold tracking-tight text-[#101010] leading-tight">{{
+                        stats.avg_price }}</p>
+                    <p class="mt-0.5 text-[12px] text-[#878787]">{{ stats.avg_price_sub }}</p>
                 </div>
 
                 <!-- Total Volume -->
@@ -395,7 +399,8 @@ const logDotColor: Record<string, string> = {
                         </svg>
 
                     </div>
-                    <p class="text-[20px] font-bold tracking-tight text-[#101010] leading-tight">{{ stats.total_volume }}</p>
+                    <p class="text-[20px] font-bold tracking-tight text-[#101010] leading-tight">{{ stats.total_volume
+                        }}</p>
                     <p class="mt-0.5 text-[12px] text-[#878787]">{{ stats.total_volume_sub }}</p>
                 </div>
 
@@ -492,15 +497,16 @@ const logDotColor: Record<string, string> = {
                                 <tbody class="divide-y divide-gray-100">
                                     <tr v-for="tx in pagedTx" :key="tx.id" class="hover:bg-gray-50/50 transition">
                                         <td class="px-4 py-3 whitespace-nowrap font-medium text-[#101010] text-[13px]">
-                                            {{ tx.no_dokumen }}</td>
-                                        <td class="px-4 py-3 whitespace-nowrap text-gray-500 text-[13px]">{{ tx.tanggal
-                                        }}</td>
-                                        <td class="px-4 py-3 whitespace-nowrap text-gray-600 text-[13px]">{{ tx.gudang
+                                            {{ tx.document_number }}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-gray-500 text-[13px]">{{ tx.date
+                                            }}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-gray-600 text-[13px]">{{
+                                            tx.warehouse
                                         }}</td>
                                         <td class="px-4 py-3 whitespace-nowrap text-gray-600 text-[13px]">{{
                                             tx.volume.toLocaleString('id-ID') }}</td>
                                         <td class="px-4 py-3 whitespace-nowrap text-gray-600 text-[13px]">{{
-                                            formatRp(tx.harga) }}</td>
+                                            formatRp(tx.price) }}</td>
                                         <td class="px-4 py-3 whitespace-nowrap text-gray-600 text-[13px]">{{
                                             formatRp(tx.total) }}</td>
                                         <td class="px-4 py-3 whitespace-nowrap">
@@ -539,7 +545,7 @@ const logDotColor: Record<string, string> = {
                                     <p class="text-[12px] text-gray-400">{{ log.user }}</p>
                                 </div>
                                 <span class="shrink-0 text-[12px] text-gray-400 whitespace-nowrap">
-                                    {{ log.waktu }}
+                                    {{ log.time }}
                                 </span>
                             </div>
                             <div v-if="activityLogs.length === 0" class="py-6 text-center text-sm text-gray-400">
@@ -557,18 +563,18 @@ const logDotColor: Record<string, string> = {
                     <div class="bg-white rounded-xl border border-[#EDEDED] shadow-sm p-5">
                         <h2 class="text-[18px] font-semibold text-[#101010] mb-4">Profil Buyer</h2>
 
-                        <!-- Avatar + nama -->
+                        <!-- Avatar + name -->
                         <div class="flex items-center gap-3 mb-4">
-                            <img v-if="buyer.foto_url" :src="buyer.foto_url"
+                            <img v-if="buyer.photo_url" :src="buyer.photo_url"
                                 class="h-10 w-10 rounded-full object-cover border border-gray-200" />
                             <div v-else
                                 class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#007C95]/10 text-sm font-bold text-[#007C95]">
-                                {{ buyer.inisials }}
+                                {{ buyer.initials }}
                             </div>
                             <div>
-                                <p class="text-[14px] font-semibold text-[#101010]">{{ buyer.nama }}</p>
+                                <p class="text-[14px] font-semibold text-[#101010]">{{ buyer.name }}</p>
                                 <p class="text-[12px] text-gray-400">
-                                    {{ buyer.kode }} · {{ buyer.city_name ?? '—' }}
+                                    {{ buyer.code }} · {{ buyer.city_name ?? '—' }}
                                 </p>
                             </div>
                         </div>
@@ -577,7 +583,7 @@ const logDotColor: Record<string, string> = {
                         <div class="flex flex-col gap-2.5 text-[13px]">
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">Telepon:</span>
-                                <span class="text-right text-[#101010]">{{ buyer.telepon ?? '—' }}</span>
+                                <span class="text-right text-[#101010]">{{ buyer.phone ?? '—' }}</span>
                             </div>
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">Email:</span>
@@ -585,7 +591,7 @@ const logDotColor: Record<string, string> = {
                             </div>
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">Alamat:</span>
-                                <span class="text-right text-[#101010]">{{ buyer.alamat ?? '—' }}</span>
+                                <span class="text-right text-[#101010]">{{ buyer.address ?? '—' }}</span>
                             </div>
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">PIC:</span>
@@ -602,28 +608,28 @@ const logDotColor: Record<string, string> = {
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">Harga Default:</span>
                                 <span class="text-right text-[#101010]">
-                                    {{ buyer.harga_jual_default
-                                        ? 'Rp ' + buyer.harga_jual_default.toLocaleString('id-ID') + '/kg'
+                                    {{ buyer.default_selling_price
+                                        ? 'Rp ' + buyer.default_selling_price.toLocaleString('id-ID') + '/kg'
                                         : '—' }}
                                 </span>
                             </div>
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">Limit Kredit:</span>
                                 <span class="text-right text-[#101010]">
-                                    {{ buyer.limit_kredit
-                                        ? 'Rp ' + buyer.limit_kredit.toLocaleString('id-ID')
+                                    {{ buyer.credit_limit
+                                        ? 'Rp ' + buyer.credit_limit.toLocaleString('id-ID')
                                         : '—' }}
                                 </span>
                             </div>
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">Termin Bayar:</span>
                                 <span class="text-right text-[#101010]">
-                                    {{ buyer.termin_hari ? buyer.termin_hari + ' hari' : '—' }}
+                                    {{ buyer.payment_term_days ? buyer.payment_term_days + ' hari' : '—' }}
                                 </span>
                             </div>
-                            <div v-if="buyer.catatan" class="flex items-start justify-between gap-2">
+                            <div v-if="buyer.notes" class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">Catatan:</span>
-                                <span class="text-right text-[#101010]">{{ buyer.catatan }}</span>
+                                <span class="text-right text-[#101010]">{{ buyer.notes }}</span>
                             </div>
                         </div>
                     </div>
@@ -641,18 +647,18 @@ const logDotColor: Record<string, string> = {
                         <div class="flex flex-col gap-2 text-[13px]">
                             <div class="flex items-center justify-between">
                                 <span class="text-gray-400">Total Penjualan:</span>
-                                <span class="font-semibold text-[#101010]">{{ ringkasanPiutang.total_penjualan }}</span>
+                                <span class="font-semibold text-[#101010]">{{ receivableSummary.total_sales }}</span>
                             </div>
                             <div class="flex items-center justify-between">
                                 <span class="text-gray-400">Sudah Diterima:</span>
-                                <span class="font-semibold text-[#101010]">{{ ringkasanPiutang.sudah_diterima }}</span>
+                                <span class="font-semibold text-[#101010]">{{ receivableSummary.already_received }}</span>
                             </div>
                             <div class="flex items-center justify-between">
                                 <span class="text-gray-400">Piutang Aktif:</span>
-                                <span class="font-semibold" :class="ringkasanPiutang.piutang_aktif === 'Rp 0'
+                                <span class="font-semibold" :class="receivableSummary.active_receivable === 'Rp 0'
                                     ? 'text-emerald-500'
                                     : 'text-red-500'">
-                                    {{ ringkasanPiutang.piutang_aktif }}
+                                    {{ receivableSummary.active_receivable }}
                                 </span>
                             </div>
                         </div>
@@ -661,10 +667,10 @@ const logDotColor: Record<string, string> = {
                         <div class="mt-3">
                             <div class="h-1.5 w-full rounded-full bg-gray-100">
                                 <div class="h-1.5 rounded-full bg-[#007C95] transition-all"
-                                    :style="{ width: ringkasanPiutang.persen_diterima + '%' }" />
+                                    :style="{ width: receivableSummary.receivable_percent + '%' }" />
                             </div>
                             <p class="mt-1.5 text-[11px] text-gray-400">
-                                {{ ringkasanPiutang.persen_diterima }}% dari total penjualan belum diterima
+                                {{ receivableSummary.receivable_percent }}% dari total penjualan belum diterima
                             </p>
                         </div>
                     </div>
@@ -673,17 +679,17 @@ const logDotColor: Record<string, string> = {
                     <div class="bg-white rounded-xl border border-[#EDEDED] shadow-sm p-5">
                         <h2 class="text-[18px] font-semibold text-[#101010] mb-4">Produk yang Dibeli</h2>
                         <div class="flex flex-col gap-2.5">
-                            <div v-for="p in produkDibeli" :key="p.nama">
+                            <div v-for="p in productsBought" :key="p.name">
                                 <div class="relative h-7 w-full overflow-hidden rounded-lg bg-[#F9F9F9]">
                                     <div class="absolute inset-y-0 left-0 rounded-lg bg-[#AAEADB] transition-all"
-                                        :style="{ width: p.persen + '%' }" />
+                                        :style="{ width: p.percent + '%' }" />
                                     <span
                                         class="absolute inset-0 flex items-center justify-center text-[13px] font-medium text-[#101010]">
-                                        {{ p.nama }} ({{ p.persen }}%)
+                                        {{ p.name }} ({{ p.percent }}%)
                                     </span>
                                 </div>
                             </div>
-                            <div v-if="produkDibeli.length === 0" class="text-sm text-gray-400 text-center py-2">
+                            <div v-if="productsBought.length === 0" class="text-sm text-gray-400 text-center py-2">
                                 Belum ada data
                             </div>
                         </div>

@@ -66,8 +66,8 @@ interface PaginatedSuppliers {
 
 interface Stats {
     total: number;
-    aktif: number;
-    nonaktif: number;
+    active: number;
+    inactive: number;
 }
 
 // ── Props ──────────────────────────────────────────────────────
@@ -81,7 +81,7 @@ const props = defineProps<{
         search?: string;
         perPage?: number;
         status?: string;
-        termin?: string;
+        payment_term?: string;
         city_id?: string;
         sort?: string;
         direction?: 'asc' | 'desc';
@@ -113,7 +113,7 @@ const filterFields = computed(() => [
         ],
     },
     {
-        key: 'termin',
+        key: 'payment_term',
         label: 'Termin',
         type: 'select' as const,
         options: [
@@ -131,7 +131,7 @@ const filterFields = computed(() => [
 
 const filterValues = ref<FilterValues>({
     status: props.filters.status ?? undefined,
-    termin: props.filters.termin ?? undefined,
+    payment_term: props.filters.payment_term ?? undefined,
     city_id: props.filters.city_id ?? undefined,
 });
 
@@ -325,7 +325,7 @@ const chevronClass = (col: string, dir: 'asc' | 'desc') =>
                         </svg>
 
                     </div>
-                    <p class="text-[24px] font-bold tracking-tight text-[#101010]">{{ stats.aktif }}</p>
+                    <p class="text-[24px] font-bold tracking-tight text-[#101010]">{{ stats.active }}</p>
                 </div>
 
                 <div class="bg-white rounded-xl border border-[#EDEDED] shadow-sm p-4 flex flex-col">
@@ -341,7 +341,7 @@ const chevronClass = (col: string, dir: 'asc' | 'desc') =>
                         </svg>
 
                     </div>
-                    <p class="text-[24px] font-bold tracking-tight text-[#101010]">{{ stats.nonaktif }}</p>
+                    <p class="text-[24px] font-bold tracking-tight text-[#101010]">{{ stats.inactive }}</p>
                 </div>
             </div>
 
@@ -381,13 +381,13 @@ const chevronClass = (col: string, dir: 'asc' | 'desc') =>
                                     <th class="px-4 py-3 text-left">
                                         <button
                                             class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition"
-                                            :class="sortClass('kode')" @click="handleSort('kode')">
+                                            :class="sortClass('code')" @click="handleSort('code')">
                                             Kode
                                             <span class="flex flex-col">
                                                 <ChevronUp class="size-3 -mb-0.5"
-                                                    :class="chevronClass('kode', 'asc')" />
+                                                    :class="chevronClass('code', 'asc')" />
                                                 <ChevronDown class="size-3 -mt-0.5"
-                                                    :class="chevronClass('kode', 'desc')" />
+                                                    :class="chevronClass('code', 'desc')" />
                                             </span>
                                         </button>
                                     </th>
@@ -396,13 +396,13 @@ const chevronClass = (col: string, dir: 'asc' | 'desc') =>
                                     <th class="px-4 py-3 text-left">
                                         <button
                                             class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition"
-                                            :class="sortClass('nama')" @click="handleSort('nama')">
+                                            :class="sortClass('name')" @click="handleSort('name')">
                                             Nama Supplier
                                             <span class="flex flex-col">
                                                 <ChevronUp class="size-3 -mb-0.5"
-                                                    :class="chevronClass('nama', 'asc')" />
+                                                    :class="chevronClass('name', 'asc')" />
                                                 <ChevronDown class="size-3 -mt-0.5"
-                                                    :class="chevronClass('nama', 'desc')" />
+                                                    :class="chevronClass('name', 'desc')" />
                                             </span>
                                         </button>
                                     </th>
@@ -423,14 +423,14 @@ const chevronClass = (col: string, dir: 'asc' | 'desc') =>
                                     <th class="px-4 py-3 text-left">
                                         <button
                                             class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition"
-                                            :class="sortClass('kapasitas_per_bulan')"
-                                            @click="handleSort('kapasitas_per_bulan')">
+                                            :class="sortClass('monthly_capacity')"
+                                            @click="handleSort('monthly_capacity')">
                                             Kapasitas
                                             <span class="flex flex-col">
                                                 <ChevronUp class="size-3 -mb-0.5"
-                                                    :class="chevronClass('kapasitas_per_bulan', 'asc')" />
+                                                    :class="chevronClass('monthly_capacity', 'asc')" />
                                                 <ChevronDown class="size-3 -mt-0.5"
-                                                    :class="chevronClass('kapasitas_per_bulan', 'desc')" />
+                                                    :class="chevronClass('monthly_capacity', 'desc')" />
                                             </span>
                                         </button>
                                     </th>
@@ -461,22 +461,22 @@ const chevronClass = (col: string, dir: 'asc' | 'desc') =>
 
                                     <!-- Kode -->
                                     <td class="px-4 py-3 whitespace-nowrap">
-                                        <span class="font-mono text-xs text-gray-500">{{ supplier.kode }}</span>
+                                        <span class="font-mono text-xs text-gray-500">{{ supplier.code }}</span>
                                     </td>
 
                                     <!-- Nama -->
                                     <td class="px-4 py-3 whitespace-nowrap">
                                         <div class="flex items-center gap-3">
-                                            <img v-if="supplier.foto_url" :src="supplier.foto_url" :alt="supplier.nama"
+                                            <img v-if="supplier.photo_url" :src="supplier.photo_url" :alt="supplier.name"
                                                 class="size-8 shrink-0 rounded-full border border-gray-200 object-cover" />
                                             <div v-else
                                                 class="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#007C95]/10">
                                                 <span class="text-xs font-semibold text-[#007C95]">
-                                                    {{ getInitials(supplier.nama) }}
+                                                    {{ getInitials(supplier.name) }}
                                                 </span>
                                             </div>
                                             <div>
-                                                <p class="font-medium text-gray-900">{{ supplier.nama }}</p>
+                                                <p class="font-medium text-gray-900">{{ supplier.name }}</p>
                                                 <p v-if="supplier.email" class="text-xs text-gray-400">{{ supplier.email
                                                 }}</p>
                                             </div>
@@ -485,7 +485,7 @@ const chevronClass = (col: string, dir: 'asc' | 'desc') =>
 
                                     <!-- Kontak -->
                                     <td class="px-4 py-3 whitespace-nowrap text-gray-500">
-                                        {{ supplier.telepon ?? '—' }}
+                                        {{ supplier.phone ?? '—' }}
                                     </td>
 
                                     <!-- Lokasi -->
@@ -495,18 +495,18 @@ const chevronClass = (col: string, dir: 'asc' | 'desc') =>
 
                                     <!-- Kapasitas -->
                                     <td class="px-4 py-3 whitespace-nowrap text-gray-700">
-                                        {{ formatKapasitas(supplier.kapasitas_per_bulan) }}
+                                        {{ formatKapasitas(supplier.monthly_capacity) }}
                                     </td>
 
                                     <!-- Termin -->
                                     <td class="px-4 py-3 whitespace-nowrap">
                                         <span
                                             class="inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium"
-                                            :class="supplier.termin === 'cash'
+                                            :class="supplier.payment_term === 'cash'
                                                 ? 'bg-[#101010] text-white'
                                                 : 'bg-[#EDEDED] text-[#101010]'">
-                                            {{ supplier.termin_label ?? (supplier.termin === 'cash' ? 'Cash' : `Tempo
-                                            (${supplier.termin_hari} hari)`) }}
+                                            {{ supplier.payment_term_label ?? (supplier.payment_term === 'cash' ? 'Cash' : `Tempo
+                                            (${supplier.payment_term_days} hari)`) }}
                                         </span>
                                     </td>
 

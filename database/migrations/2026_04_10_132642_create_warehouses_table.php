@@ -10,20 +10,20 @@ return new class extends Migration
     {
         Schema::create('warehouses', function (Blueprint $table) {
             $table->id();
-            $table->string('kode', 20)->unique();
-            $table->string('nama', 255);
+            $table->string('code', 20)->unique();
+            $table->string('name', 255);
             $table->foreignId('city_id')->nullable()->constrained('cities')->nullOnDelete();
-            $table->enum('tipe', ['Utama', 'Cabang', 'Transit', 'Sementara'])->default('Utama');
-            $table->text('alamat')->nullable();
+            $table->enum('type', ['Utama', 'Cabang', 'Transit', 'Sementara'])->default('Utama');
+            $table->text('address')->nullable();
             $table->string('pic', 255)->nullable();
-            $table->string('telepon_pic', 20)->nullable();
-            $table->decimal('kapasitas_maks', 15, 2)->default(0);
-            $table->decimal('stok_minimum', 15, 2)->default(0);
-            $table->decimal('harga_estimasi', 15, 2)->nullable()->comment('Estimasi harga per kg');
-            $table->decimal('biaya_operasional', 15, 2)->default(0)->comment('Biaya per bulan (Rp)');
+            $table->string('pic_phone', 20)->nullable();
+            $table->decimal('capacity_max', 15, 2)->default(0);
+            $table->decimal('min_stock', 15, 2)->default(0);
+            $table->decimal('price_estimate', 15, 2)->nullable()->comment('Estimated price per kg');
+            $table->decimal('operating_cost', 15, 2)->default(0)->comment('Monthly cost (Rp)');
             $table->boolean('is_active')->default(true);
-            $table->string('alasan_nonaktif', 255)->nullable();
-            $table->text('catatan')->nullable();
+            $table->string('inactive_reason', 255)->nullable();
+            $table->text('notes')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

@@ -31,8 +31,8 @@ const ALASAN_OPTIONS = [
 ];
 
 const form = useForm({
-    alasan_nonaktif: '',
-    catatan: '',
+    inactive_reason: '',
+    notes: '',
 });
 
 const isDeactivating = computed(() => !!props.buyer?.is_active);
@@ -49,7 +49,7 @@ watch(() => props.open, (open) => {
 });
 
 function selectAlasan(val: string) {
-    form.alasan_nonaktif = val;
+    form.inactive_reason = val;
     alasanOpen.value = false;
 }
 
@@ -113,10 +113,10 @@ function handleSubmit() {
                 <!-- Confirmation text -->
                 <p class="text-sm text-gray-800">
                     <template v-if="isDeactivating">
-                        Anda yakin ingin menonaktifkan buyer <strong>"{{ buyer?.nama }}"</strong>?
+                        Anda yakin ingin menonaktifkan buyer <strong>"{{ buyer?.name }}"</strong>?
                     </template>
                     <template v-else>
-                        Aktifkan kembali buyer <strong>"{{ buyer?.nama }}"</strong>?
+                        Aktifkan kembali buyer <strong>"{{ buyer?.name }}"</strong>?
                     </template>
                 </p>
 
@@ -126,9 +126,9 @@ function handleSubmit() {
                     <div class="relative">
                         <button type="button"
                             class="h-11 w-full rounded-lg border border-gray-200 bg-white px-3 text-left text-sm flex items-center justify-between focus:border-gray-400 focus:outline-none"
-                            :class="form.alasan_nonaktif ? 'text-gray-800' : 'text-gray-400'"
+                            :class="form.inactive_reason ? 'text-gray-800' : 'text-gray-400'"
                             @click="alasanOpen = !alasanOpen">
-                            <span>{{ form.alasan_nonaktif || 'Tidak aktif beroperasi' }}</span>
+                            <span>{{ form.inactive_reason || 'Tidak aktif beroperasi' }}</span>
                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" class="shrink-0 text-gray-400">
                                 <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
                                     stroke-linejoin="round" />
@@ -148,7 +148,7 @@ function handleSubmit() {
                 <!-- Catatan -->
                 <div v-if="isDeactivating" class="grid gap-1.5">
                     <Label class="text-sm font-semibold text-gray-900">Catatan (opsional)</Label>
-                    <textarea v-model="form.catatan" rows="4" placeholder="Masukkan catatan"
+                    <textarea v-model="form.notes" rows="4" placeholder="Masukkan catatan"
                         class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 placeholder-gray-400 resize-none focus:border-gray-400 focus:outline-none" />
                 </div>
 

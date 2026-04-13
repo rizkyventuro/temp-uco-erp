@@ -1,11 +1,19 @@
 <?php
 
 use App\Enums\PermissionEnum;
+use App\Http\Controllers\AccountsPayableController;
+use App\Http\Controllers\AccountsReceivableController;
 use App\Http\Controllers\Auth\VerifyEmailController as CustomVerifyEmailController;
 use App\Http\Controllers\BuyerController;
+use App\Http\Controllers\CashBankController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\GoodsIssueController;
+use App\Http\Controllers\GoodsReceiptController;
 use App\Http\Controllers\ManagementUserController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\StockOpnameController;
+use App\Http\Controllers\StockTransferController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\WarehouseController;
 use Illuminate\Support\Facades\Route;
@@ -73,6 +81,60 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::patch('/{id}/toggle-status', [WarehouseController::class, 'toggleStatus'])
                 ->name('toggle-status');
         });
+    });
+
+
+    // Barang Masuk
+    Route::prefix('goods-receipt')->name('goods-receipt.')->group(function () {
+        Route::get('/',                              [GoodsReceiptController::class, 'index'])->name('index');
+        Route::get('/{id}',                          [GoodsReceiptController::class, 'show'])->name('show');
+        Route::post('/',                             [GoodsReceiptController::class, 'store'])->name('store');
+        Route::patch('/{id}',                        [GoodsReceiptController::class, 'update'])->name('update');
+        Route::patch('/{id}/update-status',          [GoodsReceiptController::class, 'updateStatus'])->name('update-status');
+        Route::delete('/{id}',                       [GoodsReceiptController::class, 'destroy'])->name('destroy');
+    });
+
+    // Barang Keluar
+    Route::prefix('goods-issue')->name('goods-issue.')->group(function () {
+        Route::get('/', [GoodsIssueController::class, 'index'])->name('index');
+        Route::get('/{id}', [GoodsIssueController::class, 'show'])->name('show');
+        Route::post('/', [GoodsIssueController::class, 'store'])->name('store');
+        Route::patch('/{id}', [GoodsIssueController::class, 'update'])->name('update');
+        Route::patch('/{id}/update-status', [GoodsIssueController::class, 'updateStatus'])->name('update-status');
+        Route::delete('/{id}',                       [GoodsIssueController::class, 'destroy'])->name('destroy');
+    });
+
+    // Transfer Stok
+    Route::prefix('stock-transfer')->name('stock-transfer.')->group(function () {
+        Route::get('/',              [StockTransferController::class, 'index'])->name('index');
+        Route::post('/',             [StockTransferController::class, 'store'])->name('store');
+        Route::patch('/{id}/status', [StockTransferController::class, 'updateStatus'])->name('update-status');
+        Route::delete('/{id}',       [StockTransferController::class, 'destroy'])->name('destroy');
+    });
+
+    // Stok / Opname
+    Route::prefix('stock-opname')->name('stock-opname.')->group(function () {
+        Route::get('/', [StockOpnameController::class, 'index'])->name('index');
+    });
+
+    // Hutang (AP)
+    Route::prefix('accounts-payable')->name('accounts-payable.')->group(function () {
+        Route::get('/', [AccountsPayableController::class, 'index'])->name('index');
+    });
+
+    // Piutang (AR)
+    Route::prefix('accounts-receivable')->name('accounts-receivable.')->group(function () {
+        Route::get('/', [AccountsReceivableController::class, 'index'])->name('index');
+    });
+
+    // Kas / Bank
+    Route::prefix('cash-bank')->name('cash-bank.')->group(function () {
+        Route::get('/', [CashBankController::class, 'index'])->name('index');
+    });
+
+    // Laporan
+    Route::prefix('reports')->name('reports.')->group(function () {
+        Route::get('/', [ReportController::class, 'index'])->name('index');
     });
 });
 

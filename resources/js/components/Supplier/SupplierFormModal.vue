@@ -20,28 +20,28 @@ export interface City {
 
 export interface Supplier {
     id: string;
-    kode: string;
-    nama: string;
-    telepon?: string | null;
+    code: string;
+    name: string;
+    phone?: string | null;
     email?: string | null;
     city_id?: number | null;
     city_name?: string | null;
-    kapasitas_per_bulan?: number | null;
-    harga_beli_default?: number | null;
+    monthly_capacity?: number | null;
+    default_purchase_price?: number | null;
     bank?: string | null;
-    no_rekening?: string | null;
-    atas_nama?: string | null;
+    account_number?: string | null;
+    account_holder?: string | null;
     npwp?: string | null;
     pic?: string | null;
-    alamat?: string | null;
-    catatan?: string | null;
-    termin: 'cash' | 'tempo';
-    termin_hari?: number | null;
-    termin_label?: string;
+    address?: string | null;
+    notes?: string | null;
+    payment_term: 'cash' | 'tempo';
+    payment_term_days?: number | null;
+    payment_term_label?: string;
     is_active: boolean;
-    alasan_nonaktif?: string | null;
-    foto_url?: string | null;
-    inisials: string;
+    inactive_reason?: string | null;
+    photo_url?: string | null;
+    initials: string;
 }
 
 // ── Props & Emits ──────────────────────────────────────────────
@@ -52,7 +52,7 @@ const props = defineProps<{
     postUrl: string;
     putUrl?: string;
     cities: City[];
-    nextKode?: string; // e.g. "SUP-006" passed from parent for new supplier
+    nextCode?: string; // e.g. "SUP-006" passed from parent for new supplier
 }>();
 
 const emit = defineEmits<{
@@ -63,21 +63,21 @@ const emit = defineEmits<{
 // ── Form ───────────────────────────────────────────────────────
 
 const form = useForm({
-    nama: '',
-    telepon: '',
+    name: '',
+    phone: '',
     email: '',
     city_id: '' as string | number,
-    kapasitas_per_bulan: '' as string | number,
-    harga_beli_default: '' as string | number,
+    monthly_capacity: '' as string | number,
+    default_purchase_price: '' as string | number,
     bank: '',
-    no_rekening: '',
-    atas_nama: '',
+    account_number: '',
+    account_holder: '',
     npwp: '',
     pic: '',
-    alamat: '',
-    catatan: '',
-    termin: 'cash' as 'cash' | 'tempo',
-    termin_hari: '' as string | number,
+    address: '',
+    notes: '',
+    payment_term: 'cash' as 'cash' | 'tempo',
+    payment_term_days: '' as string | number,
     foto: null as File | null,
 });
 
@@ -92,24 +92,24 @@ watch(
     () => props.editingSupplier,
     (s) => {
         if (s) {
-            displayKode.value = s.kode ?? '';
-            form.nama = s.nama;
-            form.telepon = s.telepon ?? '';
+            displayKode.value = s.code ?? '';
+            form.name = s.name;
+            form.phone = s.phone ?? '';
             form.email = s.email ?? '';
             form.city_id = s.city_id ?? '';
-            form.kapasitas_per_bulan = s.kapasitas_per_bulan ?? '';
-            form.harga_beli_default = s.harga_beli_default ?? '';
+            form.monthly_capacity = s.monthly_capacity ?? '';
+            form.default_purchase_price = s.default_purchase_price ?? '';
             form.bank = s.bank ?? '';
-            form.no_rekening = s.no_rekening ?? '';
-            form.atas_nama = s.atas_nama ?? '';
+            form.account_number = s.account_number ?? '';
+            form.account_holder = s.account_holder ?? '';
             form.npwp = s.npwp ?? '';
             form.pic = s.pic ?? '';
-            form.alamat = s.alamat ?? '';
-            form.catatan = s.catatan ?? '';
-            form.termin = s.termin ?? 'cash';
-            form.termin_hari = s.termin_hari ?? '';
+            form.address = s.address ?? '';
+            form.notes = s.notes ?? '';
+            form.payment_term = s.payment_term ?? 'cash';
+            form.payment_term_days = s.payment_term_days ?? '';
             form.foto = null;
-            previewUrl.value = s.foto_url ?? null;
+            previewUrl.value = s.photo_url ?? null;
             selectedFileName.value = '';
         } else {
             displayKode.value = '';
@@ -204,9 +204,9 @@ const textareaClass = (hasError: boolean) => [
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">Nama Supplier</Label>
-                            <Input v-model="form.nama" placeholder="Nama lengkap atau perusahaan"
-                                :class="inputClass(!!form.errors.nama)" />
-                            <span v-if="form.errors.nama" class="text-xs text-red-500">{{ form.errors.nama }}</span>
+                            <Input v-model="form.name" placeholder="Nama lengkap atau perusahaan"
+                                :class="inputClass(!!form.errors.name)" />
+                            <span v-if="form.errors.name" class="text-xs text-red-500">{{ form.errors.name }}</span>
                         </div>
 
                         <div class="grid gap-1.5">
@@ -221,12 +221,12 @@ const textareaClass = (hasError: boolean) => [
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">No. Telepon</Label>
                             <div class="flex items-center h-[45px] rounded-md border bg-white overflow-hidden"
-                                :class="form.errors.telepon ? 'border-red-400' : 'border-input'">
+                                :class="form.errors.phone ? 'border-red-400' : 'border-input'">
                                 <span
                                     class="flex items-center px-3 text-sm text-gray-500 shrink-0 border-r border-gray-200 h-full bg-white">
                                     +62
                                 </span>
-                                <input v-model="form.telepon" placeholder="Masukkan nomor telepon"
+                                <input v-model="form.phone" placeholder="Masukkan nomor telepon"
                                     class="flex-1 h-full px-3 text-sm text-gray-700 placeholder-gray-400 bg-transparent border-none outline-none focus:ring-0" />
                                 <span class="flex items-center pr-3  shrink-0">
                                     <svg width="24" height="24" viewBox="0 0 24 24"
@@ -236,7 +236,7 @@ const textareaClass = (hasError: boolean) => [
                                     </svg>
                                 </span>
                             </div>
-                            <span v-if="form.errors.telepon" class="text-xs text-red-500">{{ form.errors.telepon
+                            <span v-if="form.errors.phone" class="text-xs text-red-500">{{ form.errors.phone
                             }}</span>
                         </div>
 
@@ -264,10 +264,10 @@ const textareaClass = (hasError: boolean) => [
 
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">Kapasitas/Bulan (kg)</Label>
-                            <Input v-model="form.kapasitas_per_bulan" type="number" min="0" placeholder="0"
-                                :class="inputClass(!!form.errors.kapasitas_per_bulan)" />
-                            <span v-if="form.errors.kapasitas_per_bulan" class="text-xs text-red-500">{{
-                                form.errors.kapasitas_per_bulan }}</span>
+                            <Input v-model="form.monthly_capacity" type="number" min="0" placeholder="0"
+                                :class="inputClass(!!form.errors.monthly_capacity)" />
+                            <span v-if="form.errors.monthly_capacity" class="text-xs text-red-500">{{
+                                form.errors.monthly_capacity }}</span>
                         </div>
                     </div>
 
@@ -275,10 +275,10 @@ const textareaClass = (hasError: boolean) => [
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">Harga Beli Default (Rp/kg)</Label>
-                            <Input v-model="form.harga_beli_default" type="number" min="0" placeholder="4500"
-                                :class="inputClass(!!form.errors.harga_beli_default)" />
-                            <span v-if="form.errors.harga_beli_default" class="text-xs text-red-500">{{
-                                form.errors.harga_beli_default }}</span>
+                            <Input v-model="form.default_purchase_price" type="number" min="0" placeholder="4500"
+                                :class="inputClass(!!form.errors.default_purchase_price)" />
+                            <span v-if="form.errors.default_purchase_price" class="text-xs text-red-500">{{
+                                form.errors.default_purchase_price }}</span>
                         </div>
 
                         <div class="grid gap-1.5">
@@ -293,17 +293,17 @@ const textareaClass = (hasError: boolean) => [
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">No. Rekening</Label>
-                            <Input v-model="form.no_rekening" placeholder="nomor rekening"
-                                :class="inputClass(!!form.errors.no_rekening)" />
-                            <span v-if="form.errors.no_rekening" class="text-xs text-red-500">{{ form.errors.no_rekening
+                            <Input v-model="form.account_number" placeholder="nomor rekening"
+                                :class="inputClass(!!form.errors.account_number)" />
+                            <span v-if="form.errors.account_number" class="text-xs text-red-500">{{ form.errors.account_number
                             }}</span>
                         </div>
 
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">Atas Nama</Label>
-                            <Input v-model="form.atas_nama" placeholder="Atas nama pemilik rekening"
-                                :class="inputClass(!!form.errors.atas_nama)" />
-                            <span v-if="form.errors.atas_nama" class="text-xs text-red-500">{{ form.errors.atas_nama
+                            <Input v-model="form.account_holder" placeholder="Atas nama pemilik rekening"
+                                :class="inputClass(!!form.errors.account_holder)" />
+                            <span v-if="form.errors.account_holder" class="text-xs text-red-500">{{ form.errors.account_holder
                             }}</span>
                         </div>
                     </div>
@@ -331,20 +331,20 @@ const textareaClass = (hasError: boolean) => [
                             <Label class="text-sm font-medium text-gray-700">
                                 Termin Pembayaran <span class="text-red-500">*</span>
                             </Label>
-                            <select v-model="form.termin" :class="selectClass(!!form.errors.termin)">
+                            <select v-model="form.payment_term" :class="selectClass(!!form.errors.payment_term)">
                                 <option value="cash">Cash</option>
                                 <option value="tempo">Tempo</option>
                             </select>
-                            <span v-if="form.errors.termin" class="text-xs text-red-500">{{ form.errors.termin }}</span>
+                            <span v-if="form.errors.payment_term" class="text-xs text-red-500">{{ form.errors.payment_term }}</span>
                         </div>
 
-                        <div v-if="form.termin === 'tempo'" class="grid gap-1.5">
+                        <div v-if="form.payment_term === 'tempo'" class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">
                                 Jangka Waktu (hari) <span class="text-red-500">*</span>
                             </Label>
-                            <Input v-model="form.termin_hari" type="number" min="1" placeholder="30"
-                                :class="inputClass(!!form.errors.termin_hari)" />
-                            <span v-if="form.errors.termin_hari" class="text-xs text-red-500">{{ form.errors.termin_hari
+                            <Input v-model="form.payment_term_days" type="number" min="1" placeholder="30"
+                                :class="inputClass(!!form.errors.payment_term_days)" />
+                            <span v-if="form.errors.payment_term_days" class="text-xs text-red-500">{{ form.errors.payment_term_days
                             }}</span>
                         </div>
                     </div>
@@ -352,17 +352,17 @@ const textareaClass = (hasError: boolean) => [
                     <!-- Alamat Lengkap (full width) -->
                     <div class="grid gap-1.5">
                         <Label class="text-sm font-medium text-gray-700">Alamat Lengkap</Label>
-                        <textarea v-model="form.alamat" rows="3" placeholder="alamat lengkap supplier..."
-                            :class="textareaClass(!!form.errors.alamat)" />
-                        <span v-if="form.errors.alamat" class="text-xs text-red-500">{{ form.errors.alamat }}</span>
+                        <textarea v-model="form.address" rows="3" placeholder="alamat lengkap supplier..."
+                            :class="textareaClass(!!form.errors.address)" />
+                        <span v-if="form.errors.address" class="text-xs text-red-500">{{ form.errors.address }}</span>
                     </div>
 
                     <!-- Catatan Tambahan (full width) -->
                     <div class="grid gap-1.5">
                         <Label class="text-sm font-medium text-gray-700">Catatan Tambahan</Label>
-                        <textarea v-model="form.catatan" rows="3" placeholder="catatan tambahan..."
-                            :class="textareaClass(!!form.errors.catatan)" />
-                        <span v-if="form.errors.catatan" class="text-xs text-red-500">{{ form.errors.catatan }}</span>
+                        <textarea v-model="form.notes" rows="3" placeholder="catatan tambahan..."
+                            :class="textareaClass(!!form.errors.notes)" />
+                        <span v-if="form.errors.notes" class="text-xs text-red-500">{{ form.errors.notes }}</span>
                     </div>
 
                     <!-- Foto Supplier -->

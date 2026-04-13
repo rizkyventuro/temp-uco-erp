@@ -18,25 +18,25 @@ export interface City {
 
 export interface Buyer {
     id: string;
-    kode: string;
-    nama: string;
-    tipe?: 'PT' | 'CV' | 'UD' | 'Perorangan' | null;
-    telepon?: string | null;
+    code: string;
+    name: string;
+    type?: 'PT' | 'CV' | 'UD' | 'Perorangan' | null;
+    phone?: string | null;
     email?: string | null;
     city_id?: number | null;
     city_name?: string | null;
-    harga_jual_default?: number | null;
-    limit_kredit?: number | null;
-    termin_hari?: number | null;
+    default_selling_price?: number | null;
+    credit_limit?: number | null;
+    payment_term_days?: number | null;
     pic?: string | null;
     npwp?: string | null;
     website?: string | null;
-    alamat?: string | null;
-    catatan?: string | null;
+    address?: string | null;
+    notes?: string | null;
     is_active: boolean;
-    alasan_nonaktif?: string | null;
-    foto_url?: string | null;
-    inisials: string;
+    inactive_reason?: string | null;
+    photo_url?: string | null;
+    initials: string;
 }
 
 const props = defineProps<{
@@ -53,19 +53,19 @@ const emit = defineEmits<{
 }>();
 
 const form = useForm({
-    nama: '',
-    tipe: '' as string,
-    telepon: '',
+    name: '',
+    type: '' as string,
+    phone: '',
     email: '',
     city_id: '' as string | number,
-    harga_jual_default: '' as string | number,
-    limit_kredit: '' as string | number,
-    termin_hari: '' as string | number,
+    default_selling_price: '' as string | number,
+    credit_limit: '' as string | number,
+    payment_term_days: '' as string | number,
     pic: '',
     npwp: '',
     website: '',
-    alamat: '',
-    catatan: '',
+    address: '',
+    notes: '',
     foto: null as File | null,
 });
 
@@ -79,22 +79,22 @@ watch(
     () => props.editingBuyer,
     (b) => {
         if (b) {
-            displayKode.value = b.kode ?? '';
-            form.nama = b.nama;
-            form.tipe = b.tipe ?? '';
-            form.telepon = b.telepon ?? '';
+            displayKode.value = b.code ?? '';
+            form.name = b.name;
+            form.type = b.type ?? '';
+            form.phone = b.phone ?? '';
             form.email = b.email ?? '';
             form.city_id = b.city_id ?? '';
-            form.harga_jual_default = b.harga_jual_default ?? '';
-            form.limit_kredit = b.limit_kredit ?? '';
-            form.termin_hari = b.termin_hari ?? '';
+            form.default_selling_price = b.default_selling_price ?? '';
+            form.credit_limit = b.credit_limit ?? '';
+            form.payment_term_days = b.payment_term_days ?? '';
             form.pic = b.pic ?? '';
             form.npwp = b.npwp ?? '';
             form.website = b.website ?? '';
-            form.alamat = b.alamat ?? '';
-            form.catatan = b.catatan ?? '';
+            form.address = b.address ?? '';
+            form.notes = b.notes ?? '';
             form.foto = null;
-            previewUrl.value = b.foto_url ?? null;
+            previewUrl.value = b.photo_url ?? null;
             selectedFileName.value = '';
         } else {
             displayKode.value = '';
@@ -176,9 +176,9 @@ const textareaClass = (hasError: boolean) => [
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">Nama Buyer</Label>
-                            <Input v-model="form.nama" placeholder="Nama lengkap atau perusahaan"
-                                :class="inputClass(!!form.errors.nama)" />
-                            <span v-if="form.errors.nama" class="text-xs text-red-500">{{ form.errors.nama }}</span>
+                            <Input v-model="form.name" placeholder="Nama lengkap atau perusahaan"
+                                :class="inputClass(!!form.errors.name)" />
+                            <span v-if="form.errors.name" class="text-xs text-red-500">{{ form.errors.name }}</span>
                         </div>
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">Kode Buyer</Label>
@@ -191,24 +191,24 @@ const textareaClass = (hasError: boolean) => [
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">Tipe</Label>
-                            <select v-model="form.tipe" :class="selectClass(!!form.errors.tipe)">
+                            <select v-model="form.type" :class="selectClass(!!form.errors.type)">
                                 <option value="">Pilih tipe</option>
                                 <option value="PT">PT</option>
                                 <option value="CV">CV</option>
                                 <option value="UD">UD</option>
                                 <option value="Perorangan">Perorangan</option>
                             </select>
-                            <span v-if="form.errors.tipe" class="text-xs text-red-500">{{ form.errors.tipe }}</span>
+                            <span v-if="form.errors.type" class="text-xs text-red-500">{{ form.errors.type }}</span>
                         </div>
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">No. Telepon</Label>
                             <div class="flex items-center h-[45px] rounded-md border bg-white overflow-hidden"
-                                :class="form.errors.telepon ? 'border-red-400' : 'border-input'">
+                                :class="form.errors.phone ? 'border-red-400' : 'border-input'">
                                 <span
                                     class="flex items-center px-3 text-sm text-gray-500 shrink-0 border-r border-gray-200 h-full bg-white">
                                     +62
                                 </span>
-                                <input v-model="form.telepon" placeholder="Masukkan nomor telepon"
+                                <input v-model="form.phone" placeholder="Masukkan nomor telepon"
                                     class="flex-1 h-full px-3 text-sm text-gray-700 placeholder-gray-400 bg-transparent border-none outline-none focus:ring-0" />
                                 <span class="flex items-center pr-3  shrink-0">
                                     <svg width="24" height="24" viewBox="0 0 24 24"
@@ -218,7 +218,7 @@ const textareaClass = (hasError: boolean) => [
                                     </svg>
                                 </span>
                             </div>
-                            <span v-if="form.errors.telepon" class="text-xs text-red-500">{{ form.errors.telepon
+                            <span v-if="form.errors.phone" class="text-xs text-red-500">{{ form.errors.phone
                             }}</span>
                         </div>
                     </div>
@@ -248,17 +248,17 @@ const textareaClass = (hasError: boolean) => [
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">Harga Jual Default (Rp/kg)</Label>
-                            <Input v-model="form.harga_jual_default" type="number" min="0" placeholder="4.400"
-                                :class="inputClass(!!form.errors.harga_jual_default)" />
-                            <span v-if="form.errors.harga_jual_default" class="text-xs text-red-500">{{
-                                form.errors.harga_jual_default }}</span>
+                            <Input v-model="form.default_selling_price" type="number" min="0" placeholder="4.400"
+                                :class="inputClass(!!form.errors.default_selling_price)" />
+                            <span v-if="form.errors.default_selling_price" class="text-xs text-red-500">{{
+                                form.errors.default_selling_price }}</span>
                         </div>
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">Limit Kredit (Rp)</Label>
-                            <Input v-model="form.limit_kredit" type="number" min="0" placeholder="50.000.000"
-                                :class="inputClass(!!form.errors.limit_kredit)" />
-                            <span v-if="form.errors.limit_kredit" class="text-xs text-red-500">{{
-                                form.errors.limit_kredit }}</span>
+                            <Input v-model="form.credit_limit" type="number" min="0" placeholder="50.000.000"
+                                :class="inputClass(!!form.errors.credit_limit)" />
+                            <span v-if="form.errors.credit_limit" class="text-xs text-red-500">{{
+                                form.errors.credit_limit }}</span>
                         </div>
                     </div>
 
@@ -266,10 +266,10 @@ const textareaClass = (hasError: boolean) => [
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">Termin Pembayaran (hari)</Label>
-                            <Input v-model="form.termin_hari" type="number" min="1" placeholder="30"
-                                :class="inputClass(!!form.errors.termin_hari)" />
-                            <span v-if="form.errors.termin_hari" class="text-xs text-red-500">{{
-                                form.errors.termin_hari }}</span>
+                            <Input v-model="form.payment_term_days" type="number" min="1" placeholder="30"
+                                :class="inputClass(!!form.errors.payment_term_days)" />
+                            <span v-if="form.errors.payment_term_days" class="text-xs text-red-500">{{
+                                form.errors.payment_term_days }}</span>
                         </div>
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">PIC / Contact Person</Label>
@@ -299,17 +299,17 @@ const textareaClass = (hasError: boolean) => [
                     <!-- Alamat Lengkap -->
                     <div class="grid gap-1.5">
                         <Label class="text-sm font-medium text-gray-700">Alamat Lengkap</Label>
-                        <textarea v-model="form.alamat" rows="3" placeholder="alamat lengkap buyer..."
-                            :class="textareaClass(!!form.errors.alamat)" />
-                        <span v-if="form.errors.alamat" class="text-xs text-red-500">{{ form.errors.alamat }}</span>
+                        <textarea v-model="form.address" rows="3" placeholder="alamat lengkap buyer..."
+                            :class="textareaClass(!!form.errors.address)" />
+                        <span v-if="form.errors.address" class="text-xs text-red-500">{{ form.errors.address }}</span>
                     </div>
 
                     <!-- Catatan Tambahan -->
                     <div class="grid gap-1.5">
                         <Label class="text-sm font-medium text-gray-700">Catatan Tambahan</Label>
-                        <textarea v-model="form.catatan" rows="3" placeholder="catatan tambahan..."
-                            :class="textareaClass(!!form.errors.catatan)" />
-                        <span v-if="form.errors.catatan" class="text-xs text-red-500">{{ form.errors.catatan }}</span>
+                        <textarea v-model="form.notes" rows="3" placeholder="catatan tambahan..."
+                            :class="textareaClass(!!form.errors.notes)" />
+                        <span v-if="form.errors.notes" class="text-xs text-red-500">{{ form.errors.notes }}</span>
                     </div>
 
                     <!-- Foto Buyer -->

@@ -28,27 +28,28 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
 
 interface Supplier {
     id: string;
-    kode: string;
-    nama: string;
-    telepon?: string | null;
+    code: string;
+    name: string;
+    phone?: string | null;
     email?: string | null;
     city_id?: number | null;
     city_name?: string | null;
-    kapasitas_per_bulan?: number | null;
-    harga_beli_default?: number | null;
+    monthly_capacity?: number | null;
+    default_purchase_price?: number | null;
     bank?: string | null;
-    no_rekening?: string | null;
-    atas_nama?: string | null;
+    account_number?: string | null;
+    account_holder?: string | null;
     npwp?: string | null;
     pic?: string | null;
-    alamat?: string | null;
-    catatan?: string | null;
-    termin: 'cash' | 'tempo';
-    termin_hari?: number | null;
+    address?: string | null;
+    notes?: string | null;
+    payment_term: 'cash' | 'tempo';
+    payment_term_days?: number | null;
+    payment_term_label?: string | null;
     is_active: boolean;
-    alasan_nonaktif?: string | null;
-    foto_url?: string | null;
-    inisials: string;
+    inactive_reason?: string | null;
+    photo_url?: string | null;
+    initials: string;
 }
 
 interface StatCard {
@@ -60,25 +61,25 @@ interface StatCard {
 
 interface Transaction {
     id: string;
-    no_dokumen: string;
-    tanggal: string;
-    gudang: string;
+    document_number: string;
+    date: string;
+    warehouse: string;
     volume: number;
-    harga: number;
+    price: number;
     total: number;
     status: string;
 }
 
-interface GudangDistribusi {
-    nama: string;
-    persen: number;
+interface WarehouseDistribution {
+    name: string;
+    percent: number;
 }
 
 interface ActivityLog {
     id: string;
     message: string;
     user: string;
-    waktu: string;
+    time: string;
     type: 'success' | 'danger' | 'warning' | 'info';
 }
 
@@ -87,12 +88,12 @@ interface ActivityLog {
 const props = defineProps<{
     supplier: Supplier;
     stats: {
-        total_pembelian: string;
-        total_pembelian_sub: string;
-        hutang_aktif: string;
-        hutang_aktif_sub: string;
-        harga_rata_rata: string;
-        harga_rata_rata_sub: string;
+        total_purchase: string;
+        total_purchase_sub: string;
+        active_debt: string;
+        active_debt_sub: string;
+        avg_price: string;
+        avg_price_sub: string;
         total_volume: string;
         total_volume_sub: string;
         rating: string;
@@ -105,13 +106,13 @@ const props = defineProps<{
         last_page: number;
         total: number;
     };
-    ringkasanHutang: {
-        total_pembelian: string;
-        total_dibayar: string;
-        hutang_aktif: string;
-        persen_lunas: number;
+    debtSummary: {
+        total_purchase: string;
+        total_paid: string;
+        active_debt: string;
+        paid_percent: number;
     };
-    gudangDistribusi: GudangDistribusi[];
+    warehouseDistribution: WarehouseDistribution[];
     activityLogs: ActivityLog[];
     toggleUrl: string;
     editUrl: string;
@@ -131,15 +132,15 @@ onMounted(() => {
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Master Data', href: '#' },
     { title: 'Supplier', href: '/master-data/supplier' },
-    { title: props.supplier.nama, href: '#' },
+    { title: props.supplier.name, href: '#' },
 ];
 
 // ── Stat cards ─────────────────────────────────────────────────
 
 const statCards = computed(() => [
-    { label: 'Total Pembelian', value: props.stats.total_pembelian, sub: props.stats.total_pembelian_sub, iconType: 'pembelian' },
-    { label: 'Hutang Aktif', value: props.stats.hutang_aktif, sub: props.stats.hutang_aktif_sub, iconType: 'hutang' },
-    { label: 'Harga Rata-rata', value: props.stats.harga_rata_rata, sub: props.stats.harga_rata_rata_sub, iconType: 'avg_price' },
+    { label: 'Total Pembelian', value: props.stats.total_purchase, sub: props.stats.total_purchase_sub, iconType: 'pembelian' },
+    { label: 'Hutang Aktif', value: props.stats.active_debt, sub: props.stats.active_debt_sub, iconType: 'hutang' },
+    { label: 'Harga Rata-rata', value: props.stats.avg_price, sub: props.stats.avg_price_sub, iconType: 'avg_price' },
     { label: 'Total Volume', value: props.stats.total_volume, sub: props.stats.total_volume_sub, iconType: 'volume' },
     { label: 'Rating Supplier', value: props.stats.rating, sub: props.stats.rating_sub, iconType: 'star' },
 ]);
@@ -196,8 +197,8 @@ const txFilterFields = computed(() => [
         ],
     },
     {
-        key: 'gudang', label: 'Gudang', type: 'select' as const,
-        options: [...new Set(props.transactions.data.map(t => t.gudang))]
+        key: 'warehouse', label: 'Gudang', type: 'select' as const,
+        options: [...new Set(props.transactions.data.map(t => t.warehouse))]
             .map(g => ({ label: g, value: g })),
     },
 ]);
@@ -207,14 +208,14 @@ const filteredTx = computed(() => {
     if (txSearch.value) {
         const q = txSearch.value.toLowerCase();
         data = data.filter(t =>
-            t.no_dokumen.toLowerCase().includes(q) ||
-            t.gudang.toLowerCase().includes(q),
+            t.document_number.toLowerCase().includes(q) ||
+            t.warehouse.toLowerCase().includes(q),
         );
     }
     if (txFilterValues.value.status)
         data = data.filter(t => t.status === txFilterValues.value.status);
-    if (txFilterValues.value.gudang)
-        data = data.filter(t => t.gudang === txFilterValues.value.gudang);
+    if (txFilterValues.value.warehouse)
+        data = data.filter(t => t.warehouse === txFilterValues.value.warehouse);
     return data;
 });
 
@@ -264,7 +265,7 @@ const logDotColor: Record<string, string> = {
 
 <template>
 
-    <Head :title="supplier.nama" />
+    <Head :title="supplier.name" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-col gap-5 p-6 bg-gray-50 pb-12">
 
@@ -280,9 +281,9 @@ const logDotColor: Record<string, string> = {
                 </button>
 
                 <div class="flex-1">
-                    <h1 class="text-[22px] font-bold text-[#101010]">{{ supplier.nama }}</h1>
+                    <h1 class="text-[22px] font-bold text-[#101010]">{{ supplier.name }}</h1>
                     <div class="flex items-center gap-2">
-                        <p class="text-sm text-gray-400">{{ supplier.kode }}</p>
+                        <p class="text-sm text-gray-400">{{ supplier.code }}</p>
                         <span class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium"
                             :class="supplier.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'">
                             {{ supplier.is_active ? 'Aktif' : 'Non-Aktif' }}
@@ -470,15 +471,16 @@ const logDotColor: Record<string, string> = {
                                     <tr v-for="tx in pagedTx" :key="tx.id" class="hover:bg-gray-50/50 transition">
                                         <td class="px-4 py-3 whitespace-nowrap font-medium text-[#101010] text-[13px]">
                                             {{
-                                                tx.no_dokumen }}</td>
-                                        <td class="px-4 py-3 whitespace-nowrap text-gray-500 text-[13px]">{{ tx.tanggal
-                                        }}</td>
-                                        <td class="px-4 py-3 whitespace-nowrap text-gray-600 text-[13px]">{{ tx.gudang
+                                                tx.document_number }}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-gray-500 text-[13px]">{{ tx.date
+                                            }}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-gray-600 text-[13px]">{{
+                                            tx.warehouse_name
                                         }}</td>
                                         <td class="px-4 py-3 whitespace-nowrap text-gray-600 text-[13px]">{{
                                             tx.volume.toLocaleString('id-ID') }}</td>
                                         <td class="px-4 py-3 whitespace-nowrap text-gray-600 text-[13px]">{{
-                                            formatRp(tx.harga) }}
+                                            formatRp(tx.price) }}
                                         </td>
                                         <td class="px-4 py-3 whitespace-nowrap text-gray-600 text-[13px]">{{
                                             formatRp(tx.total) }}
@@ -518,8 +520,8 @@ const logDotColor: Record<string, string> = {
                                     <p class="text-[13px] text-[#101010]">{{ log.message }}</p>
                                     <p class="text-[12px] text-gray-400">{{ log.user }}</p>
                                 </div>
-                                <span class="shrink-0 text-[12px] text-gray-400 whitespace-nowrap">{{ log.waktu
-                                }}</span>
+                                <span class="shrink-0 text-[12px] text-gray-400 whitespace-nowrap">{{ log.time
+                                    }}</span>
                             </div>
                             <div v-if="activityLogs.length === 0" class="py-6 text-center text-sm text-gray-400">
                                 Belum ada aktivitas
@@ -538,18 +540,18 @@ const logDotColor: Record<string, string> = {
 
                         <!-- Avatar + nama -->
                         <div class="flex items-center gap-3 mb-4">
-                            <div v-if="supplier.foto_url">
-                                <img :src="supplier.foto_url"
+                            <div v-if="supplier.photo_url">
+                                <img :src="supplier.photo_url"
                                     class="h-10 w-10 rounded-full object-cover border border-gray-200" />
                             </div>
                             <div v-else
                                 class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#007C95]/10 text-sm font-bold text-[#007C95]">
-                                {{ supplier.inisials }}
+                                {{ supplier.initials }}
                             </div>
                             <div>
-                                <p class="text-[14px] font-semibold text-[#101010]">{{ supplier.nama }}</p>
-                                <p class="text-[12px] text-gray-400">{{ supplier.kode }} · {{ supplier.city_name ?? '—'
-                                }}</p>
+                                <p class="text-[14px] font-semibold text-[#101010]">{{ supplier.name }}</p>
+                                <p class="text-[12px] text-gray-400">{{ supplier.code }} · {{ supplier.city_name ?? '—'
+                                    }}</p>
                             </div>
                         </div>
 
@@ -557,7 +559,7 @@ const logDotColor: Record<string, string> = {
                         <div class="flex flex-col gap-2.5 text-[13px]">
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">Telepon:</span>
-                                <span class="text-right text-[#101010]">{{ supplier.telepon ?? '—' }}</span>
+                                <span class="text-right text-[#101010]">{{ supplier.phone ?? '—' }}</span>
                             </div>
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">Email:</span>
@@ -565,7 +567,7 @@ const logDotColor: Record<string, string> = {
                             </div>
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">Alamat:</span>
-                                <span class="text-right text-[#101010]">{{ supplier.alamat ?? '—' }}</span>
+                                <span class="text-right text-[#101010]">{{ supplier.address ?? '—' }}</span>
                             </div>
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">PIC:</span>
@@ -574,12 +576,12 @@ const logDotColor: Record<string, string> = {
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">Bank:</span>
                                 <span class="text-right text-[#101010]">
-                                    {{ supplier.bank ? `${supplier.bank} — ${supplier.no_rekening}` : '—' }}
+                                    {{ supplier.bank ? `${supplier.bank} — ${supplier.account_number}` : '—' }}
                                 </span>
                             </div>
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">Atas Nama:</span>
-                                <span class="text-right text-[#101010]">{{ supplier.atas_nama ?? '—' }}</span>
+                                <span class="text-right text-[#101010]">{{ supplier.account_holder ?? '—' }}</span>
                             </div>
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">NPWP:</span>
@@ -588,22 +590,22 @@ const logDotColor: Record<string, string> = {
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">Kapasitas/Bulan:</span>
                                 <span class="text-right text-[#101010]">
-                                    {{ supplier.kapasitas_per_bulan ?
-                                        supplier.kapasitas_per_bulan.toLocaleString('id-ID') + ' kg' :
+                                    {{ supplier.monthly_capacity ?
+                                        supplier.monthly_capacity.toLocaleString('id-ID') + ' kg' :
                                         '—' }}
                                 </span>
                             </div>
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">Harga Default:</span>
                                 <span class="text-right text-[#101010]">
-                                    {{ supplier.harga_beli_default ? 'Rp ' +
-                                        supplier.harga_beli_default.toLocaleString('id-ID') +
+                                    {{ supplier.default_purchase_price ? 'Rp ' +
+                                        supplier.default_purchase_price.toLocaleString('id-ID') +
                                         '/kg' : '—' }}
                                 </span>
                             </div>
-                            <div v-if="supplier.catatan" class="flex items-start justify-between gap-2">
+                            <div v-if="supplier.notes" class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">Catatan:</span>
-                                <span class="text-right text-[#101010]">{{ supplier.catatan }}</span>
+                                <span class="text-right text-[#101010]">{{ supplier.notes }}</span>
                             </div>
                         </div>
                     </div>
@@ -621,17 +623,17 @@ const logDotColor: Record<string, string> = {
                         <div class="flex flex-col gap-2 text-[13px]">
                             <div class="flex items-center justify-between">
                                 <span class="text-gray-400">Total Pembelian:</span>
-                                <span class="font-semibold text-[#101010]">{{ ringkasanHutang.total_pembelian }}</span>
+                                <span class="font-semibold text-[#101010]">{{ debtSummary.total_purchase }}</span>
                             </div>
                             <div class="flex items-center justify-between">
                                 <span class="text-gray-400">Total Sudah Dibayar:</span>
-                                <span class="font-semibold text-[#101010]">{{ ringkasanHutang.total_dibayar }}</span>
+                                <span class="font-semibold text-[#101010]">{{ debtSummary.total_paid }}</span>
                             </div>
                             <div class="flex items-center justify-between">
                                 <span class="text-gray-400">Hutang Aktif:</span>
                                 <span class="font-semibold"
-                                    :class="ringkasanHutang.hutang_aktif === 'Rp 0' ? 'text-emerald-500' : 'text-red-500'">
-                                    {{ ringkasanHutang.hutang_aktif }}
+                                    :class="debtSummary.active_debt === 'Rp 0' ? 'text-emerald-500' : 'text-red-500'">
+                                    {{ debtSummary.active_debt }}
                                 </span>
                             </div>
                         </div>
@@ -640,10 +642,10 @@ const logDotColor: Record<string, string> = {
                         <div class="mt-3">
                             <div class="h-1.5 w-full rounded-full bg-gray-100">
                                 <div class="h-1.5 rounded-full bg-[#007C95] transition-all"
-                                    :style="{ width: ringkasanHutang.persen_lunas + '%' }" />
+                                    :style="{ width: debtSummary.paid_percent + '%' }" />
                             </div>
                             <p class="mt-1.5 text-[11px] text-gray-400">
-                                {{ ringkasanHutang.persen_lunas }}% dari total pembelian sudah dibayar
+                                {{ debtSummary.paid_percent }}% dari total pembelian sudah dibayar
                             </p>
                         </div>
                     </div>
@@ -652,17 +654,17 @@ const logDotColor: Record<string, string> = {
                     <div class="bg-white rounded-xl border border-[#EDEDED] shadow-sm p-5">
                         <h2 class="text-[18px] font-semibold text-[#101010] mb-4">Gudang Tujuan</h2>
                         <div class="flex flex-col gap-2.5">
-                            <div v-for="g in gudangDistribusi" :key="g.nama">
+                            <div v-for="g in warehouseDistribution" :key="g.name">
                                 <div class="relative h-7.25 w-full overflow-hidden rounded-lg bg-[#F9F9F9]">
                                     <div class="absolute inset-y-0 left-0 rounded-lg bg-[#AAEADB] transition-all"
-                                        :style="{ width: g.persen + '%' }" />
+                                        :style="{ width: g.percent + '%' }" />
                                     <span
                                         class="absolute inset-0 flex items-center justify-center text-[14px] font-medium text-[#101010]">
-                                        {{ g.nama }} ({{ g.persen }}%)
+                                        {{ g.name }} ({{ g.percent }}%)
                                     </span>
                                 </div>
                             </div>
-                            <div v-if="gudangDistribusi.length === 0" class="text-sm text-gray-400 text-center py-2">
+                            <div v-if="warehouseDistribution.length === 0" class="text-sm text-gray-400 text-center py-2">
                                 Belum ada data
                             </div>
                         </div>

@@ -18,24 +18,24 @@ class Supplier extends Model
     public    $incrementing = false;
 
     protected $fillable = [
-        'kode',
-        'nama',
-        'telepon',
+        'code',
+        'name',
+        'phone',
         'email',
         'city_id',
-        'kapasitas_per_bulan',
-        'harga_beli_default',
+        'monthly_capacity',
+        'default_purchase_price',
         'bank',
-        'no_rekening',
-        'atas_nama',
+        'account_number',
+        'account_holder',
         'npwp',
         'pic',
-        'alamat',
-        'catatan',
-        'termin',
-        'termin_hari',
+        'address',
+        'notes',
+        'payment_term',
+        'payment_term_days',
         'is_active',
-        'alasan_nonaktif',
+        'inactive_reason',
         'foto_path',
         'foto_disk',
         'created_by',
@@ -44,10 +44,10 @@ class Supplier extends Model
     ];
 
     protected $casts = [
-        'kapasitas_per_bulan' => 'float',
-        'harga_beli_default'  => 'float',
-        'termin_hari'         => 'integer',
-        'is_active'           => 'boolean',
+        'monthly_capacity'       => 'float',
+        'default_purchase_price' => 'float',
+        'payment_term_days'      => 'integer',
+        'is_active'              => 'boolean',
     ];
 
     // ── Boot: auto-fill audit columns ─────────────────────────
@@ -108,18 +108,18 @@ class Supplier extends Model
         return Storage::disk($disk)->url($this->foto_path);
     }
 
-    public function getTerminLabelAttribute(): string
+    public function getPaymentTermLabelAttribute(): string
     {
-        if ($this->termin === 'tempo' && $this->termin_hari) {
-            return "Tempo ({$this->termin_hari} hari)";
+        if ($this->payment_term === 'tempo' && $this->payment_term_days) {
+            return "Tempo ({$this->payment_term_days} days)";
         }
 
         return 'Cash';
     }
 
-    public function getInisialsAttribute(): string
+    public function getInitialsAttribute(): string
     {
-        return collect(explode(' ', trim($this->nama)))
+        return collect(explode(' ', trim($this->name)))
             ->take(2)
             ->map(fn($w) => strtoupper($w[0] ?? ''))
             ->join('');
@@ -139,11 +139,11 @@ class Supplier extends Model
 
     // ── Helpers ────────────────────────────────────────────────
 
-    public static function generateKode(): string
+    public static function generateCode(): string
     {
         $last = self::withTrashed()
             ->orderByDesc('created_at')
-            ->value('kode');
+            ->value('code');
 
         if (! $last) {
             return 'SUP-001';

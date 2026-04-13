@@ -11,27 +11,27 @@ return new class extends Migration
         Schema::create('suppliers', function (Blueprint $table) {
             $table->uuid('id')->primary();
 
-            $table->string('kode')->unique();                           // SUP-001
-            $table->string('nama');
-            $table->string('telepon', 20)->nullable();
+            $table->string('code')->unique();                                    // SUP-001
+            $table->string('name');
+            $table->string('phone', 20)->nullable();
             $table->string('email')->nullable();
             $table->foreignId('city_id')->nullable()->constrained('cities')->nullOnDelete();
-            $table->decimal('kapasitas_per_bulan', 15, 2)->nullable(); // kg
-            $table->decimal('harga_beli_default', 15, 2)->default(0);  // Rp/kg
+            $table->decimal('monthly_capacity', 15, 2)->nullable();             // kg
+            $table->decimal('default_purchase_price', 15, 2)->default(0);       // Rp/kg
             $table->string('bank')->nullable();
-            $table->string('no_rekening')->nullable();
-            $table->string('atas_nama')->nullable();
+            $table->string('account_number')->nullable();
+            $table->string('account_holder')->nullable();
             $table->string('npwp', 30)->nullable();
             $table->string('pic')->nullable();
-            $table->text('alamat')->nullable();
-            $table->text('catatan')->nullable();
+            $table->text('address')->nullable();
+            $table->text('notes')->nullable();
 
-            // Termin pembayaran
-            $table->enum('termin', ['cash', 'tempo'])->default('cash');
-            $table->unsignedInteger('termin_hari')->nullable();
+            // Payment terms
+            $table->enum('payment_term', ['cash', 'tempo'])->default('cash');
+            $table->unsignedInteger('payment_term_days')->nullable();
 
             $table->boolean('is_active')->default(true);
-            $table->string('alasan_nonaktif')->nullable();
+            $table->string('inactive_reason')->nullable();
             $table->string('foto_path')->nullable();
             $table->string('foto_disk')->nullable();
 

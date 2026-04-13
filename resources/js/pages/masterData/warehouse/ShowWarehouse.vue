@@ -31,12 +31,12 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 
 // ── Types ──────────────────────────────────────────────────────
 
-interface AktivitasRow {
+interface ActivityRow {
     id: string;
-    no_dokumen: string;
-    tanggal: string;
-    pihak: string;
-    pihak_email: string;
+    document_number: string;
+    date: string;
+    party: string;
+    party_email: string;
     total: number;
     status: string;
 }
@@ -45,13 +45,13 @@ interface ActivityLog {
     id: string;
     message: string;
     user: string;
-    waktu: string;
+    time: string;
     type: 'success' | 'danger' | 'warning' | 'info';
 }
 
-interface PihakItem {
-    inisials: string;
-    nama: string;
+interface PartyItem {
+    initials: string;
+    name: string;
     email: string;
 }
 
@@ -60,22 +60,22 @@ interface PihakItem {
 const props = defineProps<{
     warehouse: Warehouse;
     stats: {
-        stok_saat_ini: string;
-        stok_label: string;
-        kapasitas_maks: string;
-        kapasitas_maks_sub: string;
-        tersedia: string;
-        tersedia_sub: string;
-        nilai_stok: string;
-        nilai_sub: string;
-        utilisasi: number;
-        utilisasi_label: string;
-        stok_minimum: string;
+        current_stock: string;
+        stock_label: string;
+        capacity_max: string;
+        capacity_max_sub: string;
+        available: string;
+        available_sub: string;
+        stock_value: string;
+        stock_value_sub: string;
+        occupancy: number;
+        occupancy_label: string;
+        min_stock: string;
     };
-    analyticsChart: { label: string; stok: number; volume_masuk: number; nilai: number }[];
-    riwayatAktivitas: { tab: string; data: AktivitasRow[] }[];
-    supplierAktif: PihakItem[];
-    buyerAktif: PihakItem[];
+    analyticsChart: { label: string; stock: number; volume_in: number; value: number }[];
+    activityHistory: { tab: string; data: ActivityRow[] }[];
+    activeSuppliers: PartyItem[];
+    activeBuyers: PartyItem[];
     activityLogs: ActivityLog[];
     allWarehouses: { id: string | number; label: string }[];
     toggleUrl: string;
@@ -89,7 +89,7 @@ const props = defineProps<{
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Master Data', href: '#' },
     { title: 'Warehouse', href: '/master-data/warehouse' },
-    { title: props.warehouse.nama, href: '#' },
+    { title: props.warehouse.name, href: '#' },
 ];
 
 // ── Modals ─────────────────────────────────────────────────────
@@ -105,11 +105,11 @@ onMounted(() => {
 // ── Stat cards ─────────────────────────────────────────────────
 
 const statCards = computed(() => [
-    { label: 'Stok Saat Ini', value: props.stats.stok_saat_ini, sub: props.stats.stok_label, iconType: 'stok' },
-    { label: 'Kapasitas Maks', value: props.stats.kapasitas_maks, sub: ` ${props.stats.kapasitas_maks_sub}`, iconType: 'kapasitas' },
-    { label: 'Tersedia', value: props.stats.tersedia, sub: props.stats.tersedia_sub, iconType: 'tersedia' },
-    { label: 'Total Nilai Stok', value: props.stats.nilai_stok, sub: props.stats.nilai_sub, iconType: 'nilai' },
-    { label: 'Utilisasi', value: `${props.stats.utilisasi}%`, sub: props.stats.utilisasi_label, iconType: 'utilisasi' },
+    { label: 'Stok Saat Ini', value: props.stats.current_stock, sub: props.stats.stock_label, iconType: 'stok' },
+    { label: 'Kapasitas Maks', value: props.stats.capacity_max, sub: ` ${props.stats.capacity_max_sub}`, iconType: 'kapasitas' },
+    { label: 'Tersedia', value: props.stats.available, sub: props.stats.available_sub, iconType: 'tersedia' },
+    { label: 'Total Nilai Stok', value: props.stats.stock_value, sub: props.stats.stock_value_sub, iconType: 'nilai' },
+    { label: 'Utilisasi', value: `${props.stats.occupancy}%`, sub: props.stats.occupancy_label, iconType: 'utilisasi' },
 ]);
 
 // ── Chart ──────────────────────────────────────────────────────
@@ -117,9 +117,9 @@ const statCards = computed(() => [
 const activeChartTab = ref<'Stok' | 'Volume' | 'Nilai'>('Stok');
 
 const chartData = computed(() => {
-    const key = activeChartTab.value === 'Stok' ? 'stok'
-        : activeChartTab.value === 'Volume' ? 'volume_masuk'
-            : 'nilai';
+    const key = activeChartTab.value === 'Stok' ? 'stock'
+        : activeChartTab.value === 'Volume' ? 'volume_in'
+            : 'value';
 
     return {
         labels: props.analyticsChart.map(d => d.label),
@@ -157,16 +157,16 @@ const chartOptions = {
     },
 };
 
-// ── Riwayat Aktivitas Table ─────────────────────────────────────
+// ── Activity History Table ──────────────────────────────────────
 
-const activeAktivitasTab = ref(props.riwayatAktivitas[0]?.tab ?? 'Barang Masuk');
+const activeActivityTab = ref(props.activityHistory[0]?.tab ?? 'Barang Masuk');
 const txSearch = ref('');
 const txPerPage = ref(10);
 const txCurrentPage = ref(1);
 const txFilterValues = ref<FilterValues>({});
 
 const currentTabData = computed(() =>
-    props.riwayatAktivitas.find(t => t.tab === activeAktivitasTab.value)?.data ?? []
+    props.activityHistory.find(t => t.tab === activeActivityTab.value)?.data ?? []
 );
 
 const filteredTx = computed(() => {
@@ -174,8 +174,8 @@ const filteredTx = computed(() => {
     if (txSearch.value) {
         const q = txSearch.value.toLowerCase();
         data = data.filter(t =>
-            t.no_dokumen.toLowerCase().includes(q) ||
-            t.pihak.toLowerCase().includes(q)
+            t.document_number.toLowerCase().includes(q) ||
+            t.party.toLowerCase().includes(q)
         );
     }
     if (txFilterValues.value.status) data = data.filter(t => t.status === txFilterValues.value.status);
@@ -187,7 +187,7 @@ const pagedTx = computed(() => {
     const start = (txCurrentPage.value - 1) * txPerPage.value;
     return filteredTx.value.slice(start, start + txPerPage.value);
 });
-watch([txSearch, txPerPage, txFilterValues, activeAktivitasTab], () => { txCurrentPage.value = 1; }, { deep: true });
+watch([txSearch, txPerPage, txFilterValues, activeActivityTab], () => { txCurrentPage.value = 1; }, { deep: true });
 
 const txPaginator = computed(() => {
     const total = filteredTx.value.length;
@@ -223,8 +223,8 @@ const txFilterFields = computed(() => [
 
 // ── Helpers ────────────────────────────────────────────────────
 
-const utilisasiColor = (p: number) => p >= 90 ? 'bg-red-500' : p >= 70 ? 'bg-amber-400' : 'bg-[#007C95]';
-const utilisasiText = (p: number) => p >= 90 ? 'text-red-600' : p >= 70 ? 'text-amber-600' : 'text-[#007C95]';
+const occupancyColor = (p: number) => p >= 90 ? 'bg-red-500' : p >= 70 ? 'bg-amber-400' : 'bg-[#007C95]';
+const occupancyText = (p: number) => p >= 90 ? 'text-red-600' : p >= 70 ? 'text-amber-600' : 'text-[#007C95]';
 
 const logDotColor: Record<string, string> = {
     success: 'bg-emerald-500',
@@ -233,7 +233,7 @@ const logDotColor: Record<string, string> = {
     info: 'bg-sky-400',
 };
 
-const tipeColor: Record<string, string> = {
+const typeColor: Record<string, string> = {
     Utama: 'bg-blue-50 text-blue-700',
     Cabang: 'bg-purple-50 text-purple-700',
     Transit: 'bg-orange-50 text-orange-700',
@@ -247,7 +247,7 @@ function formatRp(val: number) {
 
 <template>
 
-    <Head :title="warehouse.nama" />
+    <Head :title="warehouse.name" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-col gap-5 p-6 bg-gray-50 pb-12">
@@ -264,17 +264,17 @@ function formatRp(val: number) {
                 </button>
 
                 <div class="flex-1">
-                    <h1 class="text-[22px] font-bold text-[#101010]">{{ warehouse.nama }}</h1>
+                    <h1 class="text-[22px] font-bold text-[#101010]">{{ warehouse.name }}</h1>
                     <div class="flex items-center gap-2 flex-wrap">
-                        <p class="text-sm text-gray-400">{{ warehouse.kode }}</p>
+                        <p class="text-sm text-gray-400">{{ warehouse.code }}</p>
                         <span class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium"
                             :class="warehouse.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'">
                             {{ warehouse.is_active ? 'Aktif' : 'Non-Aktif' }}
                         </span>
-                        <span v-if="warehouse.tipe"
+                        <span v-if="warehouse.type"
                             class="inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold"
-                            :class="tipeColor[warehouse.tipe] ?? 'bg-gray-100 text-gray-700'">
-                            {{ warehouse.tipe }}
+                            :class="typeColor[warehouse.type] ?? 'bg-gray-100 text-gray-700'">
+                            {{ warehouse.type }}
                         </span>
                         <span class="text-xs text-gray-400">{{ warehouse.city_name }}</span>
                     </div>
@@ -358,8 +358,6 @@ function formatRp(val: number) {
                                         d="M0.750094 6.93759L7.75009 10.9376C7.82566 10.9808 7.91118 11.0035 7.99822 11.0035C8.08525 11.0035 8.17078 10.9808 8.24634 10.9376L15.2463 6.93759C15.323 6.89389 15.3867 6.83069 15.431 6.7544C15.4754 6.67811 15.4987 6.59145 15.4987 6.50321C15.4987 6.41498 15.4754 6.32832 15.431 6.25203C15.3867 6.17574 15.323 6.11254 15.2463 6.06884L8.24634 2.06884C8.17078 2.02565 8.08525 2.00293 7.99822 2.00293C7.91118 2.00293 7.82566 2.02565 7.75009 2.06884L0.750094 6.06884C0.673442 6.11254 0.609718 6.17574 0.565392 6.25203C0.521067 6.32832 0.497719 6.41498 0.497719 6.50321C0.497719 6.59145 0.521067 6.67811 0.565392 6.7544C0.609718 6.83069 0.673442 6.89389 0.750094 6.93759ZM8.00009 3.07571L13.992 6.50009L8.00009 9.92446L2.00822 6.50009L8.00009 3.07571ZM15.4376 8.75009C15.4709 8.80741 15.4926 8.8708 15.5012 8.93655C15.5098 9.00231 15.5053 9.06912 15.4878 9.1331C15.4704 9.19708 15.4404 9.25695 15.3995 9.30923C15.3587 9.3615 15.3079 9.40514 15.2501 9.43759L8.25009 13.4376C8.17453 13.4808 8.089 13.5035 8.00197 13.5035C7.91493 13.5035 7.82941 13.4808 7.75384 13.4376L0.750094 9.43759C0.692846 9.40476 0.642624 9.36097 0.602298 9.30873C0.561971 9.2565 0.532329 9.19683 0.515063 9.13313C0.497797 9.06944 0.493246 9.00296 0.501669 8.93751C0.510093 8.87205 0.531326 8.8089 0.564156 8.75165C0.596987 8.6944 0.640772 8.64418 0.693011 8.60386C0.74525 8.56353 0.804921 8.53389 0.868616 8.51662C0.997254 8.48175 1.13448 8.49941 1.25009 8.56571L8.00009 12.4245L14.7501 8.56571C14.8072 8.53224 14.8704 8.51044 14.9361 8.50159C15.0017 8.49274 15.0684 8.49702 15.1324 8.51418C15.1963 8.53133 15.2563 8.56102 15.3087 8.60151C15.3611 8.64201 15.4049 8.69251 15.4376 8.75009Z"
                                         fill="#101010" />
                                 </svg>
-
-
                             </template>
                             <template v-if="card.iconType === 'nilai'">
                                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
@@ -380,9 +378,7 @@ function formatRp(val: number) {
                                         d="M8.4999 2.5V13.5C8.4999 13.6326 8.44723 13.7598 8.35346 13.8536C8.25969 13.9473 8.13251 14 7.99991 14C7.8673 14 7.74012 13.9473 7.64635 13.8536C7.55258 13.7598 7.49991 13.6326 7.49991 13.5V2.5C7.49991 2.36739 7.55258 2.24021 7.64635 2.14645C7.74012 2.05268 7.8673 2 7.99991 2C8.13251 2 8.25969 2.05268 8.35346 2.14645C8.44723 2.24021 8.4999 2.36739 8.4999 2.5ZM6.49991 8C6.49991 8.13261 6.44723 8.25979 6.35346 8.35355C6.25969 8.44732 6.13251 8.5 5.99991 8.5H3.49991V10C3.49998 10.0989 3.4707 10.1957 3.41577 10.278C3.36083 10.3603 3.28271 10.4244 3.1913 10.4623C3.09989 10.5002 2.99929 10.5101 2.90225 10.4908C2.80521 10.4714 2.71608 10.4238 2.64616 10.3538L0.646155 8.35375C0.599667 8.30731 0.562787 8.25217 0.537625 8.19147C0.512463 8.13077 0.499512 8.06571 0.499512 8C0.499512 7.93429 0.512463 7.86923 0.537625 7.80853C0.562787 7.74783 0.599667 7.69269 0.646155 7.64625L2.64616 5.64625C2.71608 5.57624 2.80521 5.52856 2.90225 5.50924C2.99929 5.48991 3.09989 5.49981 3.1913 5.53769C3.28271 5.57556 3.36083 5.63971 3.41577 5.72201C3.4707 5.80431 3.49998 5.90105 3.49991 6V7.5H5.99991C6.13251 7.5 6.25969 7.55268 6.35346 7.64645C6.44723 7.74021 6.49991 7.86739 6.49991 8ZM2.49991 7.20687L1.70678 8L2.49991 8.79313V7.20687ZM15.3537 8.35375L13.3537 10.3538C13.2837 10.4238 13.1946 10.4714 13.0976 10.4908C13.0005 10.5101 12.8999 10.5002 12.8085 10.4623C12.7171 10.4244 12.639 10.3603 12.584 10.278C12.5291 10.1957 12.4998 10.0989 12.4999 10V8.5H9.9999C9.8673 8.5 9.74012 8.44732 9.64635 8.35355C9.55258 8.25979 9.4999 8.13261 9.4999 8C9.4999 7.86739 9.55258 7.74021 9.64635 7.64645C9.74012 7.55268 9.8673 7.5 9.9999 7.5H12.4999V6C12.4998 5.90105 12.5291 5.80431 12.584 5.72201C12.639 5.63971 12.7171 5.57556 12.8085 5.53769C12.8999 5.49981 13.0005 5.48991 13.0976 5.50924C13.1946 5.52856 13.2837 5.57624 13.3537 5.64625L15.3537 7.64625C15.4001 7.69269 15.437 7.74783 15.4622 7.80853C15.4873 7.86923 15.5003 7.93429 15.5003 8C15.5003 8.06571 15.4873 8.13077 15.4622 8.19147C15.437 8.25217 15.4001 8.30731 15.3537 8.35375ZM14.2912 8L13.4999 7.20687V8.79313L14.2912 8Z"
                                         fill="#101010" />
                                 </svg>
-
                             </template>
-
                         </span>
                     </div>
                     <p class="text-[20px] font-bold tracking-tight text-[#101010] leading-tight">{{ card.value }}</p>
@@ -394,19 +390,19 @@ function formatRp(val: number) {
             <div class="bg-white rounded-xl border border-[#EDEDED] shadow-sm p-5">
                 <div class="flex items-center gap-3 mb-2">
                     <span class="text-[14px] font-semibold text-[#101010]">Kapasitas Penyimpanan</span>
-                    <span class="text-[14px] font-bold text-emerald-500">{{ stats.utilisasi }}%</span>
+                    <span class="text-[14px] font-bold text-emerald-500">{{ stats.occupancy }}%</span>
                 </div>
                 <div class="relative h-[24px] w-full rounded-[8px] bg-gray-100 overflow-hidden">
                     <div class="absolute inset-y-0 left-0 rounded-[8px] bg-emerald-400 transition-all"
-                        :style="{ width: stats.utilisasi + '%' }" />
+                        :style="{ width: stats.occupancy + '%' }" />
                     <!-- Min line marker -->
                     <div class="absolute inset-y-0 w-0.5 bg-red-500 z-10"
-                        :style="{ left: ((parseFloat(stats.stok_minimum.replace(/\./g, '')) / parseFloat(stats.kapasitas_maks.replace(/\./g, ''))) * 100) + '%' }" />
+                        :style="{ left: ((parseFloat(stats.min_stock.replace(/\./g, '')) / parseFloat(stats.capacity_max.replace(/\./g, ''))) * 100) + '%' }" />
                 </div>
                 <div class="flex justify-between mt-1.5 text-[11px] text-[#101010]">
                     <span>0 kg</span>
-                    <span class="text-red-500 font-medium">Min: {{ stats.stok_minimum }} kg</span>
-                    <span>{{ stats.kapasitas_maks }} kg</span>
+                    <span class="text-red-500 font-medium">Min: {{ stats.min_stock }} kg</span>
+                    <span>{{ stats.capacity_max }} kg</span>
                 </div>
             </div>
 
@@ -441,17 +437,17 @@ function formatRp(val: number) {
                             <div class="flex items-center justify-between mb-3">
                                 <h2 class="text-[18px] font-semibold text-[#101010]">Riwayat Aktivitas Lengkap</h2>
                                 <button
-                                    class="px-3 py-2 h-[34px] text-[12px] rounded-core text-primary  border border-primary transition"
+                                    class="px-3 py-2 h-[34px] text-[12px] rounded-core text-primary border border-primary transition"
                                     @click="isTransferOpen = true">
                                     Transfer
                                 </button>
                             </div>
 
                             <!-- Tabs -->
-                            <div class="flex gap-1 ">
-                                <button v-for="t in riwayatAktivitas" :key="t.tab"
+                            <div class="flex gap-1">
+                                <button v-for="t in activityHistory" :key="t.tab"
                                     class="px-3 py-2 h-[34px] border rounded-md text-xs font-medium transition text-[#101010]"
-                                    @click="activeAktivitasTab = t.tab" :class="activeAktivitasTab === t.tab
+                                    @click="activeActivityTab = t.tab" :class="activeActivityTab === t.tab
                                         ? 'bg-[#EBFFFA] border-[#AAEADB]'
                                         : ''">
                                     {{ t.tab }}
@@ -506,19 +502,19 @@ function formatRp(val: number) {
                                 <tbody class="divide-y divide-gray-100">
                                     <tr v-for="tx in pagedTx" :key="tx.id" class="hover:bg-gray-50/50">
                                         <td class="px-4 py-3 whitespace-nowrap font-medium text-[#101010] text-[13px]">
-                                            {{ tx.no_dokumen }}</td>
-                                        <td class="px-4 py-3 whitespace-nowrap text-gray-500 text-[13px]">{{ tx.tanggal
-                                            }}</td>
+                                            {{ tx.document_number }}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-gray-500 text-[13px]">{{ tx.date }}
+                                        </td>
                                         <td class="px-4 py-3 whitespace-nowrap text-[13px]">
                                             <div class="flex items-center gap-2">
                                                 <span
                                                     class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#007C95]/10 text-[10px] font-bold text-[#007C95]">
-                                                    {{ tx.pihak.substring(0, 2).toUpperCase() }}
+                                                    {{ tx.party.substring(0, 2).toUpperCase() }}
                                                 </span>
                                                 <div>
-                                                    <p class="text-[#101010] font-medium leading-none">{{ tx.pihak }}
+                                                    <p class="text-[#101010] font-medium leading-none">{{ tx.party }}
                                                     </p>
-                                                    <p class="text-[11px] text-gray-400">{{ tx.pihak_email }}</p>
+                                                    <p class="text-[11px] text-gray-400">{{ tx.party_email }}</p>
                                                 </div>
                                             </div>
                                         </td>
@@ -559,8 +555,7 @@ function formatRp(val: number) {
                                     <p class="text-[13px] text-[#101010]">{{ log.message }}</p>
                                     <p class="text-[12px] text-gray-400">{{ log.user }}</p>
                                 </div>
-                                <span class="shrink-0 text-[12px] text-gray-400 whitespace-nowrap">{{ log.waktu
-                                    }}</span>
+                                <span class="shrink-0 text-[12px] text-gray-400 whitespace-nowrap">{{ log.time }}</span>
                             </div>
                             <div v-if="activityLogs.length === 0" class="py-6 text-center text-sm text-gray-400">
                                 Belum ada aktivitas
@@ -579,19 +574,18 @@ function formatRp(val: number) {
                         <div class="flex items-center gap-3 mb-4">
                             <div
                                 class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#007C95]/10 text-sm font-bold text-[#007C95]">
-                                {{ warehouse.nama.substring(0, 2).toUpperCase() }}
+                                {{ warehouse.name.substring(0, 2).toUpperCase() }}
                             </div>
                             <div>
-                                <p class="text-[14px] font-semibold text-[#101010]">{{ warehouse.nama }}</p>
-                                <p class="text-[12px] text-gray-400">{{ warehouse.kode }} · {{ warehouse.city_name ??
-                                    '—' }}
-                                </p>
+                                <p class="text-[14px] font-semibold text-[#101010]">{{ warehouse.name }}</p>
+                                <p class="text-[12px] text-gray-400">{{ warehouse.code }} · {{ warehouse.city_name ??
+                                    '—' }}</p>
                             </div>
                         </div>
                         <div class="flex flex-col gap-2.5 text-[13px]">
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">Alamat:</span>
-                                <span class="text-right text-[#101010]">{{ warehouse.alamat ?? '—' }}</span>
+                                <span class="text-right text-[#101010]">{{ warehouse.address ?? '—' }}</span>
                             </div>
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">Kota:</span>
@@ -599,7 +593,7 @@ function formatRp(val: number) {
                             </div>
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">Tipe:</span>
-                                <span class="text-right text-[#101010]">{{ warehouse.tipe ?? '—' }}</span>
+                                <span class="text-right text-[#101010]">{{ warehouse.type ?? '—' }}</span>
                             </div>
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">PIC:</span>
@@ -607,8 +601,9 @@ function formatRp(val: number) {
                             </div>
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">Telepon:</span>
-                                <span class="text-right text-[#101010]">{{ warehouse.telepon_pic ? '+62' +
-                                    warehouse.telepon_pic : '—' }}</span>
+                                <span class="text-right text-[#101010]">{{ warehouse.pic_phone ? '+62' +
+                                    warehouse.pic_phone : '—'
+                                    }}</span>
                             </div>
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">Status:</span>
@@ -620,23 +615,22 @@ function formatRp(val: number) {
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">Biaya Ops:</span>
                                 <span class="text-right text-[#101010]">
-                                    {{ warehouse.biaya_operasional ? 'Rp ' +
-                                        Number(warehouse.biaya_operasional).toLocaleString('id-ID') + ' / bulan' : '—' }}
+                                    {{ warehouse.operating_cost ? 'Rp ' +
+                                        Number(warehouse.operating_cost).toLocaleString('id-ID') + ' / bulan' : '—' }}
                                 </span>
                             </div>
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">Stok Minimum:</span>
                                 <span class="text-right text-[#101010]">
-                                    {{ warehouse.stok_minimum ? Number(warehouse.stok_minimum).toLocaleString('id-ID') +
-                                        ' kg'
-                                        : '—' }}
+                                    {{ warehouse.min_stock ? Number(warehouse.min_stock).toLocaleString('id-ID') + ' kg'
+                                    : '—' }}
                                 </span>
                             </div>
                             <div class="flex items-start justify-between gap-2">
                                 <span class="text-gray-400 shrink-0">Harga Estimasi:</span>
                                 <span class="text-right text-[#101010]">
-                                    {{ warehouse.harga_estimasi ? 'Rp ' +
-                                        Number(warehouse.harga_estimasi).toLocaleString('id-ID') + '/kg' : '—' }}
+                                    {{ warehouse.price_estimate ? 'Rp ' +
+                                        Number(warehouse.price_estimate).toLocaleString('id-ID') + '/kg' : '—' }}
                                 </span>
                             </div>
                         </div>
@@ -646,20 +640,20 @@ function formatRp(val: number) {
                     <div class="bg-white rounded-xl border border-[#EDEDED] shadow-sm p-5">
                         <div class="flex items-center justify-between mb-3">
                             <h2 class="text-[15px] font-semibold text-[#101010]">Supplier Aktif</h2>
-                            <div class="text-xs text-[#50CD89] bg-[#F5FFFA] py-0.5 px-1 rounded-core">{{
-                                supplierAktif.length }}
-                                aktif</div>
+                            <div class="text-xs text-[#50CD89] bg-[#F5FFFA] py-0.5 px-1 rounded-core">
+                                {{ activeSuppliers.length }} aktif
+                            </div>
                         </div>
                         <div class="flex flex-col gap-2">
-                            <div v-for="(s, i) in supplierAktif" :key="i"
+                            <div v-for="(s, i) in activeSuppliers" :key="i"
                                 class="flex items-center justify-between gap-3 rounded-lg border border-gray-100 px-3 py-2 hover:bg-gray-50 cursor-pointer transition">
                                 <div class="flex items-center gap-2">
                                     <span
                                         class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#007C95]/10 text-[11px] font-bold text-[#007C95]">
-                                        {{ s.inisials }}
+                                        {{ s.initials }}
                                     </span>
                                     <div>
-                                        <p class="text-[13px] font-medium text-[#101010]">{{ s.nama }}</p>
+                                        <p class="text-[13px] font-medium text-[#101010]">{{ s.name }}</p>
                                         <p class="text-[11px] text-gray-400">{{ s.email }}</p>
                                     </div>
                                 </div>
@@ -668,8 +662,9 @@ function formatRp(val: number) {
                                         stroke-linecap="round" stroke-linejoin="round" />
                                 </svg>
                             </div>
-                            <div v-if="supplierAktif.length === 0" class="text-xs text-gray-400 text-center py-2">Belum
-                                ada data</div>
+                            <div v-if="activeSuppliers.length === 0" class="text-xs text-gray-400 text-center py-2">
+                                Belum ada data
+                            </div>
                         </div>
                     </div>
 
@@ -677,20 +672,20 @@ function formatRp(val: number) {
                     <div class="bg-white rounded-xl border border-[#EDEDED] shadow-sm p-5">
                         <div class="flex items-center justify-between mb-3">
                             <h2 class="text-[15px] font-semibold text-[#101010]">Buyer Aktif</h2>
-                            <span class="text-xs text-[#7239EA] bg-[#F6F2FF] py-0.5 px-1 rounded-core">{{
-                                buyerAktif.length }}
-                                aktif</span>
+                            <span class="text-xs text-[#7239EA] bg-[#F6F2FF] py-0.5 px-1 rounded-core">
+                                {{ activeBuyers.length }} aktif
+                            </span>
                         </div>
                         <div class="flex flex-col gap-2">
-                            <div v-for="(b, i) in buyerAktif" :key="i"
+                            <div v-for="(b, i) in activeBuyers" :key="i"
                                 class="flex items-center justify-between gap-3 rounded-lg border border-gray-100 px-3 py-2 hover:bg-gray-50 cursor-pointer transition">
                                 <div class="flex items-center gap-2">
                                     <span
                                         class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-50 text-[11px] font-bold text-teal-700">
-                                        {{ b.inisials }}
+                                        {{ b.initials }}
                                     </span>
                                     <div>
-                                        <p class="text-[13px] font-medium text-[#101010]">{{ b.nama }}</p>
+                                        <p class="text-[13px] font-medium text-[#101010]">{{ b.name }}</p>
                                         <p class="text-[11px] text-gray-400">{{ b.email }}</p>
                                     </div>
                                 </div>
@@ -699,8 +694,9 @@ function formatRp(val: number) {
                                         stroke-linecap="round" stroke-linejoin="round" />
                                 </svg>
                             </div>
-                            <div v-if="buyerAktif.length === 0" class="text-xs text-gray-400 text-center py-2">Belum ada
-                                data</div>
+                            <div v-if="activeBuyers.length === 0" class="text-xs text-gray-400 text-center py-2">Belum
+                                ada data
+                            </div>
                         </div>
                     </div>
 

@@ -14,7 +14,7 @@ class WarehouseController extends Controller
 
     public function index(Request $request)
     {
-        $sortable = ['nama', 'kode', 'kapasitas_maks', 'biaya_operasional', 'created_at'];
+        $sortable = ['name', 'code', 'capacity_max', 'operating_cost', 'created_at'];
         $sortCol  = in_array($request->sort, $sortable) ? $request->sort : 'created_at';
         $sortDir  = $request->direction === 'asc' ? 'asc' : 'desc';
 
@@ -24,9 +24,9 @@ class WarehouseController extends Controller
                 fn($q, $search) =>
                 $q->where(
                     fn($q) =>
-                    $q->where('nama', 'like', "%{$search}%")
-                        ->orWhere('kode', 'like', "%{$search}%")
-                        ->orWhere('alamat', 'like', "%{$search}%")
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('code', 'like', "%{$search}%")
+                        ->orWhere('address', 'like', "%{$search}%")
                         ->orWhere('pic', 'like', "%{$search}%")
                 )
             )
@@ -37,7 +37,7 @@ class WarehouseController extends Controller
                     default    => null,
                 };
             })
-            ->when($request->tipe, fn($q, $tipe) => $q->where('tipe', $tipe))
+            ->when($request->type, fn($q, $type) => $q->where('type', $type))
             ->when($request->city_id, fn($q, $cityId) => $q->where('city_id', $cityId))
             ->orderBy($sortCol, $sortDir)
             ->paginate($request->input('perPage', 12))
@@ -46,22 +46,22 @@ class WarehouseController extends Controller
 
         $stats = [
             'total'    => Warehouse::count(),
-            'aktif'    => Warehouse::active()->count(),
-            'nonaktif' => Warehouse::inactive()->count(),
+            'active'   => Warehouse::active()->count(),
+            'inactive' => Warehouse::inactive()->count(),
         ];
 
         $cities = City::whereIn('id', Warehouse::whereNotNull('city_id')->pluck('city_id'))
-            ->orderBy('nama')
-            ->get(['id', 'nama as name']);
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
-        $allCities = City::orderBy('nama')->get(['id', 'nama as name']);
+        $allCities = City::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('masterData/warehouse/ListWarehouse', [
-            'warehouses'   => $warehouses,
-            'stats'     => $stats,
-            'cities'    => $cities,
-            'allCities' => $allCities,
-            'filters'   => $request->only(['search', 'perPage', 'status', 'tipe', 'city_id', 'sort', 'direction']),
+            'warehouses' => $warehouses,
+            'stats'      => $stats,
+            'cities'     => $cities,
+            'allCities'  => $allCities,
+            'filters'    => $request->only(['search', 'perPage', 'status', 'type', 'city_id', 'sort', 'direction']),
         ]);
     }
 
@@ -78,8 +78,8 @@ class WarehouseController extends Controller
 
     public function edit($id)
     {
-        $warehouse    = Warehouse::with('city')->findOrFail($id);
-        $allCities = City::orderBy('nama')->get(['id', 'nama as name']);
+        $warehouse = Warehouse::with('city')->findOrFail($id);
+        $allCities = City::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('masterData/warehouse/ShowWarehouse', array_merge(
             $this->buildShowPayload($warehouse),
@@ -92,22 +92,22 @@ class WarehouseController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama'               => 'required|string|max:255',
-            'city_id'            => 'nullable|exists:cities,id',
-            'tipe'               => 'nullable|in:Utama,Cabang,Transit,Sementara',
-            'alamat'             => 'nullable|string',
-            'pic'                => 'nullable|string|max:255',
-            'telepon_pic'        => 'nullable|string|max:20',
-            'kapasitas_maks'     => 'nullable|numeric|min:0',
-            'stok_minimum'       => 'nullable|numeric|min:0',
-            'harga_estimasi'     => 'nullable|numeric|min:0',
-            'biaya_operasional'  => 'nullable|numeric|min:0',
-            'catatan'            => 'nullable|string',
+            'name'           => 'required|string|max:255',
+            'city_id'        => 'nullable|exists:cities,id',
+            'type'           => 'nullable|in:Utama,Cabang,Transit,Sementara',
+            'address'        => 'nullable|string',
+            'pic'            => 'nullable|string|max:255',
+            'pic_phone'      => 'nullable|string|max:20',
+            'capacity_max'   => 'nullable|numeric|min:0',
+            'min_stock'      => 'nullable|numeric|min:0',
+            'price_estimate' => 'nullable|numeric|min:0',
+            'operating_cost' => 'nullable|numeric|min:0',
+            'notes'          => 'nullable|string',
         ]);
 
         DB::transaction(function () use ($validated) {
             Warehouse::create(array_merge($validated, [
-                'kode'      => Warehouse::generateKode(),
+                'code'      => Warehouse::generateCode(),
                 'is_active' => true,
             ]));
         });
@@ -123,17 +123,17 @@ class WarehouseController extends Controller
         $warehouse = Warehouse::findOrFail($id);
 
         $validated = $request->validate([
-            'nama'               => 'sometimes|required|string|max:255',
-            'city_id'            => 'nullable|exists:cities,id',
-            'tipe'               => 'nullable|in:Utama,Cabang,Transit,Sementara',
-            'alamat'             => 'nullable|string',
-            'pic'                => 'nullable|string|max:255',
-            'telepon_pic'        => 'nullable|string|max:20',
-            'kapasitas_maks'     => 'nullable|numeric|min:0',
-            'stok_minimum'       => 'nullable|numeric|min:0',
-            'harga_estimasi'     => 'nullable|numeric|min:0',
-            'biaya_operasional'  => 'nullable|numeric|min:0',
-            'catatan'            => 'nullable|string',
+            'name'           => 'sometimes|required|string|max:255',
+            'city_id'        => 'nullable|exists:cities,id',
+            'type'           => 'nullable|in:Utama,Cabang,Transit,Sementara',
+            'address'        => 'nullable|string',
+            'pic'            => 'nullable|string|max:255',
+            'pic_phone'      => 'nullable|string|max:20',
+            'capacity_max'   => 'nullable|numeric|min:0',
+            'min_stock'      => 'nullable|numeric|min:0',
+            'price_estimate' => 'nullable|numeric|min:0',
+            'operating_cost' => 'nullable|numeric|min:0',
+            'notes'          => 'nullable|string',
         ]);
 
         DB::transaction(fn() => $warehouse->update($validated));
@@ -159,14 +159,14 @@ class WarehouseController extends Controller
         $warehouse = Warehouse::findOrFail($id);
 
         $request->validate([
-            'alasan_nonaktif' => 'nullable|string|max:255',
-            'catatan'         => 'nullable|string',
+            'inactive_reason' => 'nullable|string|max:255',
+            'notes'           => 'nullable|string',
         ]);
 
         $warehouse->update([
             'is_active'       => !$warehouse->is_active,
-            'alasan_nonaktif' => $warehouse->is_active ? ($request->alasan_nonaktif ?? null) : null,
-            'catatan'         => $warehouse->is_active ? ($request->catatan ?? null) : null,
+            'inactive_reason' => $warehouse->is_active ? ($request->inactive_reason ?? null) : null,
+            'notes'           => $warehouse->is_active ? ($request->notes ?? null) : null,
         ]);
 
         return redirect()->back()->with(
@@ -177,23 +177,19 @@ class WarehouseController extends Controller
         );
     }
 
-    // ── Transfer Stok ──────────────────────────────────────────
+    // ── Transfer Stock ─────────────────────────────────────────
 
     public function transfer(Request $request)
     {
         $validated = $request->validate([
-            'dari_warehouse_id' => 'required|exists:warehouses,id',
-            'ke_warehouse_id'   => 'required|exists:warehouses,id|different:dari_warehouse_id',
-            'volume'         => 'required|numeric|min:0.01',
-            'catatan'        => 'nullable|string|max:500',
+            'from_warehouse_id' => 'required|exists:warehouses,id',
+            'to_warehouse_id'   => 'required|exists:warehouses,id|different:from_warehouse_id',
+            'volume'            => 'required|numeric|min:0.01',
+            'notes'             => 'nullable|string|max:500',
         ]);
 
-        // TODO: implementasi logika transfer stok
-        // Contoh: kurangi stok dari warehouse asal, tambah ke warehouse tujuan
-        // Buat record di tabel transfer_stok
-
         DB::transaction(function () use ($validated) {
-            // TransferStok::create($validated);
+            // TODO: implement stock transfer logic
         });
 
         return redirect()->back()->with('success', 'Transfer stok berhasil dicatat.');
@@ -203,100 +199,86 @@ class WarehouseController extends Controller
 
     private function buildShowPayload(Warehouse $warehouse): array
     {
-        // ── Static Stats (ganti dengan query real) ─────────────
-        $stokSaatIni    = 32500;
-        $kapasitasMaks  = (float) $warehouse->kapasitas_maks ?: 50000;
-        $utilisasi      = $kapasitasMaks > 0 ? round(($stokSaatIni / $kapasitasMaks) * 100) : 0;
-        $nilaiStok      = $stokSaatIni * ((float) $warehouse->harga_estimasi ?: 4400);
-        $stokMinimum    = (float) $warehouse->stok_minimum ?: 5000;
+        $currentStock  = 32500;
+        $capacityMax   = (float) $warehouse->capacity_max ?: 50000;
+        $occupancy     = $capacityMax > 0 ? round(($currentStock / $capacityMax) * 100) : 0;
+        $stockValue    = $currentStock * ((float) $warehouse->price_estimate ?: 4400);
+        $minStock      = (float) $warehouse->min_stock ?: 5000;
 
-        // ── Analitik Chart Dummy (12 bulan) ─────────────────────
         $analyticsChart = collect([
-            ['label' => 'Jan', 'stok' => 28000, 'volume_masuk' => 8000,  'nilai' => 123200000],
-            ['label' => 'Feb', 'stok' => 25000, 'volume_masuk' => 5000,  'nilai' => 110000000],
-            ['label' => 'Mar', 'stok' => 22000, 'volume_masuk' => 3000,  'nilai' => 96800000],
-            ['label' => 'Apr', 'stok' => 27000, 'volume_masuk' => 7000,  'nilai' => 118800000],
-            ['label' => 'Mei', 'stok' => 35000, 'volume_masuk' => 12000, 'nilai' => 154000000],
-            ['label' => 'Jun', 'stok' => 40000, 'volume_masuk' => 32000, 'nilai' => 176000000],
-            ['label' => 'Jul', 'stok' => 38000, 'volume_masuk' => 18000, 'nilai' => 167200000],
-            ['label' => 'Agu', 'stok' => 42000, 'volume_masuk' => 28000, 'nilai' => 184800000],
-            ['label' => 'Sep', 'stok' => 39000, 'volume_masuk' => 30000, 'nilai' => 171600000],
-            ['label' => 'Okt', 'stok' => 33000, 'volume_masuk' => 10000, 'nilai' => 145200000],
-            ['label' => 'Nov', 'stok' => 36000, 'volume_masuk' => 15000, 'nilai' => 158400000],
-            ['label' => 'Des', 'stok' => 32500, 'volume_masuk' => 38000, 'nilai' => 143000000],
+            ['label' => 'Jan', 'stock' => 28000, 'volume_in' => 8000,  'value' => 123200000],
+            ['label' => 'Feb', 'stock' => 25000, 'volume_in' => 5000,  'value' => 110000000],
+            ['label' => 'Mar', 'stock' => 22000, 'volume_in' => 3000,  'value' => 96800000],
+            ['label' => 'Apr', 'stock' => 27000, 'volume_in' => 7000,  'value' => 118800000],
+            ['label' => 'Mei', 'stock' => 35000, 'volume_in' => 12000, 'value' => 154000000],
+            ['label' => 'Jun', 'stock' => 40000, 'volume_in' => 32000, 'value' => 176000000],
+            ['label' => 'Jul', 'stock' => 38000, 'volume_in' => 18000, 'value' => 167200000],
+            ['label' => 'Agu', 'stock' => 42000, 'volume_in' => 28000, 'value' => 184800000],
+            ['label' => 'Sep', 'stock' => 39000, 'volume_in' => 30000, 'value' => 171600000],
+            ['label' => 'Okt', 'stock' => 33000, 'volume_in' => 10000, 'value' => 145200000],
+            ['label' => 'Nov', 'stock' => 36000, 'volume_in' => 15000, 'value' => 158400000],
+            ['label' => 'Des', 'stock' => 32500, 'volume_in' => 38000, 'value' => 143000000],
         ]);
 
-        // ── Riwayat Aktivitas Dummy ──────────────────────────────
-        $riwayatAktivitas = [
+        $activityHistory = [
             [
-                'tab'         => 'Barang Masuk',
-                'data'        => [
-                    ['id' => '1', 'no_dokumen' => 'BM-2024-001', 'tanggal' => '28 Jun 2026', 'pihak' => 'Sumber Jaya', 'pihak_email' => 'sumberjaya@gmail.com', 'total' => 5400000, 'status' => 'Lunas'],
-                    ['id' => '2', 'no_dokumen' => 'BM-2024-002', 'tanggal' => '28 Jun 2026', 'pihak' => 'Sumber Jaya', 'pihak_email' => 'sumberjaya@gmail.com', 'total' => 5400000, 'status' => 'Hutang'],
-                    ['id' => '3', 'no_dokumen' => 'BM-2024-003', 'tanggal' => '28 Jun 2026', 'pihak' => 'Sumber Jaya', 'pihak_email' => 'sumberjaya@gmail.com', 'total' => 5400000, 'status' => 'Lunas'],
-                    ['id' => '4', 'no_dokumen' => 'BM-2024-004', 'tanggal' => '28 Jun 2026', 'pihak' => 'Sumber Jaya', 'pihak_email' => 'sumberjaya@gmail.com', 'total' => 5400000, 'status' => 'Lunas'],
-                    ['id' => '5', 'no_dokumen' => 'BM-2024-005', 'tanggal' => '28 Jun 2026', 'pihak' => 'Sumber Jaya', 'pihak_email' => 'sumberjaya@gmail.com', 'total' => 5400000, 'status' => 'Lunas'],
+                'tab'  => 'Barang Masuk',
+                'data' => [
+                    ['id' => '1', 'document_number' => 'BM-2024-001', 'date' => '28 Jun 2026', 'party' => 'Sumber Jaya', 'party_email' => 'sumberjaya@gmail.com', 'total' => 5400000, 'status' => 'Lunas'],
+                    ['id' => '2', 'document_number' => 'BM-2024-002', 'date' => '28 Jun 2026', 'party' => 'Sumber Jaya', 'party_email' => 'sumberjaya@gmail.com', 'total' => 5400000, 'status' => 'Hutang'],
+                    ['id' => '3', 'document_number' => 'BM-2024-003', 'date' => '28 Jun 2026', 'party' => 'Sumber Jaya', 'party_email' => 'sumberjaya@gmail.com', 'total' => 5400000, 'status' => 'Lunas'],
+                    ['id' => '4', 'document_number' => 'BM-2024-004', 'date' => '28 Jun 2026', 'party' => 'Sumber Jaya', 'party_email' => 'sumberjaya@gmail.com', 'total' => 5400000, 'status' => 'Lunas'],
+                    ['id' => '5', 'document_number' => 'BM-2024-005', 'date' => '28 Jun 2026', 'party' => 'Sumber Jaya', 'party_email' => 'sumberjaya@gmail.com', 'total' => 5400000, 'status' => 'Lunas'],
                 ],
             ],
-            [
-                'tab'  => 'Barang Keluar',
-                'data' => [],
-            ],
-            [
-                'tab'  => 'Transfer',
-                'data' => [],
-            ],
-            [
-                'tab'  => 'Opname',
-                'data' => [],
-            ],
+            ['tab' => 'Barang Keluar', 'data' => []],
+            ['tab' => 'Transfer',      'data' => []],
+            ['tab' => 'Opname',        'data' => []],
         ];
 
-        // ── Supplier & Buyer Aktif ───────────────────────────────
-        $supplierAktif = [
-            ['inisials' => 'SJ', 'nama' => 'Sumber Jaya',       'email' => 'sumberjaya@gmail.com'],
-            ['inisials' => 'SJ', 'nama' => 'Sumber Jaya',       'email' => 'sumberjaya@gmail.com'],
+        $activeSuppliers = [
+            ['initials' => 'SJ', 'name' => 'Sumber Jaya',       'email' => 'sumberjaya@gmail.com'],
+            ['initials' => 'SJ', 'name' => 'Sumber Jaya',       'email' => 'sumberjaya@gmail.com'],
         ];
-        $buyerAktif = [
-            ['inisials' => 'PB', 'nama' => 'PT Bioenergi Nusantara', 'email' => 'bioenergi@email.com'],
-            ['inisials' => 'PB', 'nama' => 'PT Bioenergi Nusantara', 'email' => 'bioenergi@email.com'],
+        $activeBuyers = [
+            ['initials' => 'PB', 'name' => 'PT Bioenergi Nusantara', 'email' => 'bioenergi@email.com'],
+            ['initials' => 'PB', 'name' => 'PT Bioenergi Nusantara', 'email' => 'bioenergi@email.com'],
         ];
 
-        // ── Activity Logs Dummy ──────────────────────────────────
         $activityLogs = [
-            ['id' => '1', 'message' => 'Transfer 3.000 kg ke Warehouse Barat (TS-2024-013)', 'user' => 'Admin Kartono', 'waktu' => now()->subHours(2)->translatedFormat('d M Y H:i'), 'type' => 'warning'],
-            ['id' => '2', 'message' => 'Barang masuk 1.200 kg dari Sumber Jaya (BM-2024-008)', 'user' => 'Admin Kartono', 'waktu' => now()->subHours(2)->translatedFormat('d M Y H:i'), 'type' => 'success'],
-            ['id' => '3', 'message' => 'Transfer keluar 2.500 kg ke Warehouse Selatan (TS-2024-012)', 'user' => 'Admin Kartono', 'waktu' => now()->subHours(2)->translatedFormat('d M Y H:i'), 'type' => 'info'],
+            ['id' => '1', 'message' => 'Transfer 3.000 kg ke Warehouse Barat (TS-2024-013)', 'user' => 'Admin Kartono', 'time' => now()->subHours(2)->translatedFormat('d M Y H:i'), 'type' => 'warning'],
+            ['id' => '2', 'message' => 'Barang masuk 1.200 kg dari Sumber Jaya (BM-2024-008)', 'user' => 'Admin Kartono', 'time' => now()->subHours(2)->translatedFormat('d M Y H:i'), 'type' => 'success'],
+            ['id' => '3', 'message' => 'Transfer keluar 2.500 kg ke Warehouse Selatan (TS-2024-012)', 'user' => 'Admin Kartono', 'time' => now()->subHours(2)->translatedFormat('d M Y H:i'), 'type' => 'info'],
         ];
 
         return [
             'warehouse' => $this->formatWarehouse($warehouse),
 
             'stats' => [
-                'stok_saat_ini'    => number_format($stokSaatIni, 0, ',', '.'),
-                'stok_label'       => round($utilisasi) . '% terisi',
-                'kapasitas_maks'   => number_format($kapasitasMaks, 0, ',', '.'),
-                'kapasitas_maks_sub' => 'kapasitas total',
-                'tersedia'         => number_format($kapasitasMaks - $stokSaatIni, 0, ',', '.'),
-                'tersedia_sub'     => 'bisa diisi lagi',
-                'nilai_stok'       => 'Rp ' . number_format($nilaiStok, 0, ',', '.'),
-                'nilai_sub'        => 'estimasi nilai',
-                'utilisasi'        => $utilisasi,
-                'utilisasi_label'  => $utilisasi >= 80 ? 'Penuh' : ($utilisasi >= 50 ? 'Normal' : 'Rendah'),
-                'stok_minimum'     => number_format($stokMinimum, 0, ',', '.'),
+                'current_stock'      => number_format($currentStock, 0, ',', '.'),
+                'stock_label'        => round($occupancy) . '% terisi',
+                'capacity_max'       => number_format($capacityMax, 0, ',', '.'),
+                'capacity_max_sub'   => 'kapasitas total',
+                'available'          => number_format($capacityMax - $currentStock, 0, ',', '.'),
+                'available_sub'      => 'bisa diisi lagi',
+                'stock_value'        => 'Rp ' . number_format($stockValue, 0, ',', '.'),
+                'stock_value_sub'    => 'estimasi nilai',
+                'occupancy'          => $occupancy,
+                'occupancy_label'    => $occupancy >= 80 ? 'Penuh' : ($occupancy >= 50 ? 'Normal' : 'Rendah'),
+                'min_stock'          => number_format($minStock, 0, ',', '.'),
             ],
 
-            'analyticsChart'   => $analyticsChart,
-            'riwayatAktivitas' => $riwayatAktivitas,
-            'supplierAktif'    => $supplierAktif,
-            'buyerAktif'       => $buyerAktif,
-            'activityLogs'     => $activityLogs,
+            'analyticsChart'  => $analyticsChart,
+            'activityHistory' => $activityHistory,
+            'activeSuppliers' => $activeSuppliers,
+            'activeBuyers'    => $activeBuyers,
+            'activityLogs'    => $activityLogs,
 
             'allWarehouses' => Warehouse::active()
                 ->where('id', '!=', $warehouse->id)
-                ->orderBy('nama')
-                ->get(['id', 'nama', 'kode'])
-                ->map(fn($g) => ['id' => $g->id, 'label' => "{$g->nama} ({$g->kode})"]),
+                ->orderBy('name')
+                ->get(['id', 'name', 'code'])
+                ->map(fn($g) => ['id' => $g->id, 'label' => "{$g->name} ({$g->code})"]),
 
             'toggleUrl' => route('master-data.warehouse.toggle-status', $warehouse->id),
             'editUrl'   => route('master-data.warehouse.edit', $warehouse->id),
@@ -305,29 +287,29 @@ class WarehouseController extends Controller
 
     private function formatWarehouse(Warehouse $g): array
     {
-        $kapasitas = (float) $g->kapasitas_maks;
-        $stok      = (float) ($g->stok_saat_ini ?? 0);
-        $utilisasi = $kapasitas > 0 ? round(($stok / $kapasitas) * 100) : 0;
+        $capacity  = (float) $g->capacity_max;
+        $stock     = (float) ($g->current_stock ?? 0);
+        $occupancy = $capacity > 0 ? round(($stock / $capacity) * 100) : 0;
 
         return [
-            'id'                 => $g->id,
-            'kode'               => $g->kode,
-            'nama'               => $g->nama,
-            'city_id'            => $g->city_id,
-            'city_name'          => $g->city?->nama,
-            'tipe'               => $g->tipe,
-            'alamat'             => $g->alamat,
-            'pic'                => $g->pic,
-            'telepon_pic'        => $g->telepon_pic,
-            'kapasitas_maks'     => $g->kapasitas_maks,
-            'stok_minimum'       => $g->stok_minimum,
-            'harga_estimasi'     => $g->harga_estimasi,
-            'biaya_operasional'  => $g->biaya_operasional,
-            'is_active'          => $g->is_active,
-            'alasan_nonaktif'    => $g->alasan_nonaktif,
-            'catatan'            => $g->catatan,
-            'stok_saat_ini'      => $stok,
-            'utilisasi'          => $utilisasi,
+            'id'             => $g->id,
+            'code'           => $g->code,
+            'name'           => $g->name,
+            'city_id'        => $g->city_id,
+            'city_name'      => $g->city?->name,
+            'type'           => $g->type,
+            'address'        => $g->address,
+            'pic'            => $g->pic,
+            'pic_phone'      => $g->pic_phone,
+            'capacity_max'   => $g->capacity_max,
+            'min_stock'      => $g->min_stock,
+            'price_estimate' => $g->price_estimate,
+            'operating_cost' => $g->operating_cost,
+            'is_active'      => $g->is_active,
+            'inactive_reason' => $g->inactive_reason,
+            'notes'          => $g->notes,
+            'current_stock'  => $stock,
+            'occupancy'      => $occupancy,
         ];
     }
 }

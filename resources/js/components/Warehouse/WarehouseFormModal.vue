@@ -18,23 +18,23 @@ export interface City {
 
 export interface Warehouse {
     id: string;
-    kode: string;
-    nama: string;
+    code: string;
+    name: string;
     city_id?: number | null;
     city_name?: string | null;
-    tipe?: 'Utama' | 'Cabang' | 'Transit' | 'Sementara' | null;
-    alamat?: string | null;
+    type?: 'Utama' | 'Cabang' | 'Transit' | 'Sementara' | null;
+    address?: string | null;
     pic?: string | null;
-    telepon_pic?: string | null;
-    kapasitas_maks?: number | null;
-    stok_minimum?: number | null;
-    harga_estimasi?: number | null;
-    biaya_operasional?: number | null;
+    pic_phone?: string | null;
+    capacity_max?: number | null;
+    min_stock?: number | null;
+    price_estimate?: number | null;
+    operating_cost?: number | null;
     is_active: boolean;
-    alasan_nonaktif?: string | null;
-    catatan?: string | null;
-    stok_saat_ini?: number;
-    utilisasi?: number;
+    inactive_reason?: string | null;
+    notes?: string | null;
+    current_stock?: number;
+    occupancy?: number;
 }
 
 const props = defineProps<{
@@ -51,18 +51,18 @@ const emit = defineEmits<{
 }>();
 
 const form = useForm({
-    nama: '',
+    name: '',
     city_id: '' as string | number,
-    tipe: '' as string,
-    alamat: '',
+    type: '' as string,
+    address: '',
     pic: '',
-    telepon_pic: '',
-    kapasitas_maks: '' as string | number,
-    stok_minimum: '' as string | number,
-    harga_estimasi: '' as string | number,
-    biaya_operasional: '' as string | number,
+    pic_phone: '',
+    capacity_max: '' as string | number,
+    min_stock: '' as string | number,
+    price_estimate: '' as string | number,
+    operating_cost: '' as string | number,
     status: 'Aktif' as string,
-    catatan: '',
+    notes: '',
 });
 
 const displayKode = ref<string>('');
@@ -72,19 +72,19 @@ watch(
     () => props.editingWarehouse,
     (g) => {
         if (g) {
-            displayKode.value = g.kode ?? '';
-            form.nama = g.nama;
+            displayKode.value = g.code ?? '';
+            form.name = g.name;
             form.city_id = g.city_id ?? '';
-            form.tipe = g.tipe ?? '';
-            form.alamat = g.alamat ?? '';
+            form.type = g.type ?? '';
+            form.address = g.address ?? '';
             form.pic = g.pic ?? '';
-            form.telepon_pic = g.telepon_pic ?? '';
-            form.kapasitas_maks = g.kapasitas_maks ?? '';
-            form.stok_minimum = g.stok_minimum ?? '';
-            form.harga_estimasi = g.harga_estimasi ?? '';
-            form.biaya_operasional = g.biaya_operasional ?? '';
+            form.pic_phone = g.pic_phone ?? '';
+            form.capacity_max = g.capacity_max ?? '';
+            form.min_stock = g.min_stock ?? '';
+            form.price_estimate = g.price_estimate ?? '';
+            form.operating_cost = g.operating_cost ?? '';
             form.status = g.is_active ? 'Aktif' : 'Nonaktif';
-            form.catatan = g.catatan ?? '';
+            form.notes = g.notes ?? '';
         } else {
             displayKode.value = '';
             form.reset();
@@ -143,16 +143,16 @@ const textareaClass = (hasError: boolean) => [
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">Nama Warehouse</Label>
-                            <Input v-model="form.nama" placeholder="Nama warehouse"
-                                :class="inputClass(!!form.errors.nama)" />
-                            <span v-if="form.errors.nama" class="text-xs text-red-500">{{ form.errors.nama }}</span>
+                            <Input v-model="form.name" placeholder="Nama warehouse"
+                                :class="inputClass(!!form.errors.name)" />
+                            <span v-if="form.errors.name" class="text-xs text-red-500">{{ form.errors.name }}</span>
                         </div>
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">Kapasitas (kg)</Label>
-                            <Input v-model="form.kapasitas_maks" type="number" min="0" placeholder="0"
-                                :class="inputClass(!!form.errors.kapasitas_maks)" />
-                            <span v-if="form.errors.kapasitas_maks" class="text-xs text-red-500">{{
-                                form.errors.kapasitas_maks }}</span>
+                            <Input v-model="form.capacity_max" type="number" min="0" placeholder="0"
+                                :class="inputClass(!!form.errors.capacity_max)" />
+                            <span v-if="form.errors.capacity_max" class="text-xs text-red-500">{{
+                                form.errors.capacity_max }}</span>
                         </div>
                     </div>
 
@@ -169,23 +169,23 @@ const textareaClass = (hasError: boolean) => [
                         </div>
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">Tipe</Label>
-                            <select v-model="form.tipe" :class="selectClass(!!form.errors.tipe)">
+                            <select v-model="form.type" :class="selectClass(!!form.errors.type)">
                                 <option value="">Pilih tipe</option>
                                 <option value="Utama">Utama</option>
                                 <option value="Cabang">Cabang</option>
                                 <option value="Transit">Transit</option>
                                 <option value="Sementara">Sementara</option>
                             </select>
-                            <span v-if="form.errors.tipe" class="text-xs text-red-500">{{ form.errors.tipe }}</span>
+                            <span v-if="form.errors.type" class="text-xs text-red-500">{{ form.errors.type }}</span>
                         </div>
                     </div>
 
                     <!-- Alamat Lengkap -->
                     <div class="grid gap-1.5">
                         <Label class="text-sm font-medium text-gray-700">Alamat Lengkap</Label>
-                        <textarea v-model="form.alamat" rows="3" placeholder="alamat lengkap warehouse..."
-                            :class="textareaClass(!!form.errors.alamat)" />
-                        <span v-if="form.errors.alamat" class="text-xs text-red-500">{{ form.errors.alamat }}</span>
+                        <textarea v-model="form.address" rows="3" placeholder="alamat lengkap warehouse..."
+                            :class="textareaClass(!!form.errors.address)" />
+                        <span v-if="form.errors.address" class="text-xs text-red-500">{{ form.errors.address }}</span>
                     </div>
 
                     <!-- PIC | No. Telepon PIC -->
@@ -198,12 +198,12 @@ const textareaClass = (hasError: boolean) => [
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">No. Telepon PIC</Label>
                             <div class="flex items-center h-[45px] rounded-md border bg-white overflow-hidden"
-                                :class="form.errors.telepon_pic ? 'border-red-400' : 'border-input'">
+                                :class="form.errors.pic_phone ? 'border-red-400' : 'border-input'">
                                 <span
                                     class="flex items-center px-3 text-sm text-gray-500 shrink-0 border-r border-gray-200 h-full bg-white">
                                     +62
                                 </span>
-                                <input v-model="form.telepon_pic" placeholder="Masukkan nomor telepon"
+                                <input v-model="form.pic_phone" placeholder="Masukkan nomor telepon"
                                     class="flex-1 h-full px-3 text-sm text-gray-700 placeholder-gray-400 bg-transparent border-none outline-none focus:ring-0" />
                                 <span class="flex items-center pr-3  shrink-0">
                                     <svg width="24" height="24" viewBox="0 0 24 24" class="rounded-full overflow-hidden">
@@ -212,7 +212,7 @@ const textareaClass = (hasError: boolean) => [
                                     </svg>
                                 </span>
                             </div>
-                            <span v-if="form.errors.telepon_pic" class="text-xs text-red-500">{{ form.errors.telepon_pic
+                            <span v-if="form.errors.pic_phone" class="text-xs text-red-500">{{ form.errors.pic_phone
                                 }}</span>
                         </div>
                     </div>
@@ -221,10 +221,10 @@ const textareaClass = (hasError: boolean) => [
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">Biaya Operasional/Bulan (Rp)</Label>
-                            <Input v-model="form.biaya_operasional" type="number" min="0" placeholder="0"
-                                :class="inputClass(!!form.errors.biaya_operasional)" />
-                            <span v-if="form.errors.biaya_operasional" class="text-xs text-red-500">{{
-                                form.errors.biaya_operasional }}</span>
+                            <Input v-model="form.operating_cost" type="number" min="0" placeholder="0"
+                                :class="inputClass(!!form.errors.operating_cost)" />
+                            <span v-if="form.errors.operating_cost" class="text-xs text-red-500">{{
+                                form.errors.operating_cost }}</span>
                         </div>
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">Status</Label>
@@ -239,26 +239,26 @@ const textareaClass = (hasError: boolean) => [
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">Stok Minimum (kg)</Label>
-                            <Input v-model="form.stok_minimum" type="number" min="0" placeholder="0"
-                                :class="inputClass(!!form.errors.stok_minimum)" />
-                            <span v-if="form.errors.stok_minimum" class="text-xs text-red-500">{{
-                                form.errors.stok_minimum }}</span>
+                            <Input v-model="form.min_stock" type="number" min="0" placeholder="0"
+                                :class="inputClass(!!form.errors.min_stock)" />
+                            <span v-if="form.errors.min_stock" class="text-xs text-red-500">{{
+                                form.errors.min_stock }}</span>
                         </div>
                         <div class="grid gap-1.5">
                             <Label class="text-sm font-medium text-gray-700">Harga Estimasi (Rp/kg)</Label>
-                            <Input v-model="form.harga_estimasi" type="number" min="0" placeholder="4.400"
-                                :class="inputClass(!!form.errors.harga_estimasi)" />
-                            <span v-if="form.errors.harga_estimasi" class="text-xs text-red-500">{{
-                                form.errors.harga_estimasi }}</span>
+                            <Input v-model="form.price_estimate" type="number" min="0" placeholder="4.400"
+                                :class="inputClass(!!form.errors.price_estimate)" />
+                            <span v-if="form.errors.price_estimate" class="text-xs text-red-500">{{
+                                form.errors.price_estimate }}</span>
                         </div>
                     </div>
 
                     <!-- Catatan -->
                     <div class="grid gap-1.5">
                         <Label class="text-sm font-medium text-gray-700">Catatan</Label>
-                        <textarea v-model="form.catatan" rows="3" placeholder="catatan tambahan..."
-                            :class="textareaClass(!!form.errors.catatan)" />
-                        <span v-if="form.errors.catatan" class="text-xs text-red-500">{{ form.errors.catatan }}</span>
+                        <textarea v-model="form.notes" rows="3" placeholder="catatan tambahan..."
+                            :class="textareaClass(!!form.errors.notes)" />
+                        <span v-if="form.errors.notes" class="text-xs text-red-500">{{ form.errors.notes }}</span>
                     </div>
 
                 </div>

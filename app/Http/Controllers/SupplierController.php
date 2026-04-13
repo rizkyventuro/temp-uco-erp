@@ -17,7 +17,7 @@ class SupplierController extends Controller
 
     public function index(Request $request)
     {
-        $sortable = ['nama', 'kode', 'harga_beli_default', 'kapasitas_per_bulan', 'created_at'];
+        $sortable = ['name', 'code', 'default_purchase_price', 'monthly_capacity', 'created_at'];
         $sortCol  = in_array($request->sort, $sortable) ? $request->sort : 'created_at';
         $sortDir  = $request->direction === 'asc' ? 'asc' : 'desc';
 
@@ -27,10 +27,10 @@ class SupplierController extends Controller
                 fn($q, $search) =>
                 $q->where(
                     fn($q) =>
-                    $q->where('nama', 'like', "%{$search}%")
-                        ->orWhere('kode', 'like', "%{$search}%")
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('code', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%")
-                        ->orWhere('telepon', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%")
                 )
             )
             ->when($request->status, function ($q, $status) {
@@ -41,9 +41,9 @@ class SupplierController extends Controller
                 };
             })
             ->when(
-                $request->termin,
-                fn($q, $termin) =>
-                $q->where('termin', $termin)
+                $request->payment_term,
+                fn($q, $pt) =>
+                $q->where('payment_term', $pt)
             )
             ->when(
                 $request->city_id,
@@ -57,159 +57,26 @@ class SupplierController extends Controller
 
         $stats = [
             'total'    => Supplier::count(),
-            'aktif'    => Supplier::active()->count(),
-            'nonaktif' => Supplier::inactive()->count(),
+            'active'   => Supplier::active()->count(),
+            'inactive' => Supplier::inactive()->count(),
         ];
 
-        // Hanya kota yang dipakai supplier (untuk filter)
         $cities = City::whereIn('id', Supplier::whereNotNull('city_id')->pluck('city_id'))
-            ->orderBy('nama')
-            ->get(['id', 'nama as name']);
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
-        // Semua kota (untuk dropdown form)
-        $allCities = City::orderBy('nama')->get(['id', 'nama as name']);
+        $allCities = City::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('masterData/supplier/ListSupplier', [
             'suppliers' => $suppliers,
             'stats'     => $stats,
             'cities'    => $cities,
             'allCities' => $allCities,
-            'filters'   => $request->only(['search', 'perPage', 'status', 'termin', 'city_id', 'sort', 'direction']),
+            'filters'   => $request->only(['search', 'perPage', 'status', 'payment_term', 'city_id', 'sort', 'direction']),
         ]);
     }
 
     // ── Show ───────────────────────────────────────────────────────
-
-    // public function show(Request $request, $id)
-    // {
-    //     $supplier = Supplier::with('city')->findOrFail($id);
-
-    //     // ── Stat cards ─────────────────────────────────────────────
-    //     $transactions = \App\Models\BarangMasuk::where('supplier_id', $supplier->id);
-
-    //     $totalPembelian    = (clone $transactions)->sum('total_harga');
-    //     $jumlahTransaksi   = (clone $transactions)->count();
-    //     $totalVolume       = (clone $transactions)->sum('volume');
-    //     $hargaRataRata     = $jumlahTransaksi > 0
-    //         ? (clone $transactions)->avg('harga_beli')
-    //         : 0;
-
-    //     // Hutang aktif dari tabel AP (accounts payable)
-    //     $hutangAktif = \App\Models\HutangAP::where('supplier_id', $supplier->id)
-    //         ->where('status', '!=', 'lunas')
-    //         ->sum('sisa_hutang') ?? 0;
-
-    //     // Rating (rata-rata dari tabel rating jika ada, atau dummy)
-    //     $rating = \App\Models\SupplierRating::where('supplier_id', $supplier->id)->avg('nilai') ?? 0;
-    //     $ratingLabel = match (true) {
-    //         $rating >= 4.5 => 'Sangat Bagus',
-    //         $rating >= 3.5 => 'Bagus',
-    //         $rating >= 2.5 => 'Cukup',
-    //         $rating >= 1.5 => 'Kurang',
-    //         default        => 'Buruk',
-    //     };
-
-    //     // ── Volume chart (12 bulan terakhir) ───────────────────────
-    //     $volumeChart = collect(range(11, 0))->map(function ($monthsAgo) use ($supplier) {
-    //         $date  = now()->subMonths($monthsAgo);
-    //         $volume = \App\Models\BarangMasuk::where('supplier_id', $supplier->id)
-    //             ->whereYear('tanggal', $date->year)
-    //             ->whereMonth('tanggal', $date->month)
-    //             ->sum('volume');
-
-    //         return [
-    //             'label'  => $date->translatedFormat('M'),
-    //             'volume' => (float) $volume,
-    //         ];
-    //     })->values();
-
-    //     // ── Transaksi paginated ────────────────────────────────────
-    //     $txPaginated = \App\Models\BarangMasuk::with('gudang')
-    //         ->where('supplier_id', $supplier->id)
-    //         ->orderByDesc('tanggal')
-    //         ->paginate(5)
-    //         ->through(fn($bm) => [
-    //             'id'         => $bm->id,
-    //             'no_dokumen' => $bm->no_dokumen,
-    //             'tanggal'    => \Carbon\Carbon::parse($bm->tanggal)->translatedFormat('d M Y'),
-    //             'gudang'     => $bm->gudang?->nama ?? '—',
-    //             'volume'     => (float) $bm->volume,
-    //             'harga'      => (float) $bm->harga_beli,
-    //             'total'      => (float) $bm->total_harga,
-    //             'status'     => $bm->status_pembayaran ?? 'Lunas',
-    //         ]);
-
-    //     // ── Ringkasan hutang ───────────────────────────────────────
-    //     $totalDibayar  = $totalPembelian - $hutangAktif;
-    //     $persenLunas   = $totalPembelian > 0
-    //         ? round(($totalDibayar / $totalPembelian) * 100)
-    //         : 100;
-
-    //     // ── Distribusi gudang ──────────────────────────────────────
-    //     $gudangDistribusi = \App\Models\BarangMasuk::with('gudang')
-    //         ->where('supplier_id', $supplier->id)
-    //         ->selectRaw('gudang_id, SUM(volume) as total_volume')
-    //         ->groupBy('gudang_id')
-    //         ->get()
-    //         ->map(fn($row) => [
-    //             'nama'   => $row->gudang?->nama ?? 'Unknown',
-    //             'persen' => 0, // dihitung di bawah
-    //             '_vol'   => (float) $row->total_volume,
-    //         ]);
-
-    //     $totalVol = $gudangDistribusi->sum('_vol');
-    //     $gudangDistribusi = $gudangDistribusi->map(fn($g) => [
-    //         'nama'   => $g['nama'],
-    //         'persen' => $totalVol > 0 ? round(($g['_vol'] / $totalVol) * 100) : 0,
-    //     ])->values();
-
-    //     // ── Activity logs ──────────────────────────────────────────
-    //     $activityLogs = \App\Models\ActivityLog::where('subject_type', Supplier::class)
-    //         ->where('subject_id', $supplier->id)
-    //         ->orderByDesc('created_at')
-    //         ->limit(10)
-    //         ->get()
-    //         ->map(fn($log) => [
-    //             'id'      => $log->id,
-    //             'message' => $log->description,
-    //             'user'    => $log->causer?->name ?? 'System',
-    //             'waktu'   => \Carbon\Carbon::parse($log->created_at)->translatedFormat('d M Y H:i'),
-    //             'type'    => $log->properties['type'] ?? 'info',
-    //         ]);
-
-    //     return Inertia::render('masterData/supplier/ShowSupplier', [
-    //         'supplier' => $this->formatSupplier($supplier),
-
-    //         'stats' => [
-    //             'total_pembelian'     => 'Rp ' . number_format($totalPembelian, 0, ',', '.'),
-    //             'total_pembelian_sub' => $jumlahTransaksi . ' transaksi',
-    //             'hutang_aktif'        => 'Rp ' . number_format($hutangAktif, 0, ',', '.'),
-    //             'hutang_aktif_sub'    => $hutangAktif > 0 ? 'Ada hutang' : 'Tidak ada hutang',
-    //             'harga_rata_rata'     => number_format($hargaRataRata, 0, ',', '.'),
-    //             'harga_rata_rata_sub' => 'per kg (Rp)',
-    //             'total_volume'        => number_format($totalVolume, 0, ',', '.'),
-    //             'total_volume_sub'    => 'kg diterima',
-    //             'rating'              => number_format($rating, 1),
-    //             'rating_sub'          => $ratingLabel,
-    //         ],
-
-    //         'volumeChart'  => $volumeChart,
-    //         'transactions' => $txPaginated,
-
-    //         'ringkasanHutang' => [
-    //             'total_pembelian' => 'Rp ' . number_format($totalPembelian, 0, ',', '.'),
-    //             'total_dibayar'   => 'Rp ' . number_format($totalDibayar, 0, ',', '.'),
-    //             'hutang_aktif'    => 'Rp ' . number_format($hutangAktif, 0, ',', '.'),
-    //             'persen_lunas'    => $persenLunas,
-    //         ],
-
-    //         'gudangDistribusi' => $gudangDistribusi,
-    //         'activityLogs'     => $activityLogs,
-
-    //         'toggleUrl' => route('master-data.supplier.toggle-status', $supplier->id),
-    //         'editUrl'   => route('master-data.supplier.edit', $supplier->id),
-    //     ]);
-    // }
 
     public function show(Request $request, $id)
     {
@@ -223,7 +90,7 @@ class SupplierController extends Controller
     public function edit($id)
     {
         $supplier  = Supplier::with('city')->findOrFail($id);
-        $allCities = City::orderBy('nama')->get(['id', 'nama as name']);
+        $allCities = City::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('masterData/supplier/ShowSupplier', array_merge(
             $this->buildShowPayload($supplier),
@@ -236,11 +103,11 @@ class SupplierController extends Controller
     private function buildShowPayload(Supplier $supplier): array
     {
         // ── Static Stats ────────────────────────────────────────────
-        $totalPembelian  = 125000000;
-        $jumlahTransaksi = 24;
+        $totalPurchase   = 125000000;
+        $transactionCount = 24;
         $totalVolume     = 18500;
-        $hargaRataRata   = 6800;
-        $hutangAktif     = 15000000;
+        $avgPrice        = 6800;
+        $activeDebt      = 15000000;
         $rating          = 4.3;
 
         $ratingLabel = match (true) {
@@ -267,81 +134,80 @@ class SupplierController extends Controller
             ['label' => 'Apr', 'volume' => 2400],
         ]);
 
-        // ── Dummy Transaksi ─────────────────────────────────────────
+        // ── Dummy Transactions ──────────────────────────────────────
         $transactions = [
             [
-                'id' => 1,
-                'no_dokumen' => 'TRX-001',
-                'tanggal' => '01 Jan 2026',
-                'gudang' => 'Gudang A',
-                'volume' => 1000,
-                'harga' => 6500,
-                'total' => 6500000,
-                'status' => 'Lunas',
+                'id'             => 1,
+                'document_number' => 'TRX-001',
+                'date'           => '01 Jan 2026',
+                'warehouse'      => 'Gudang A',
+                'volume'         => 1000,
+                'price'          => 6500,
+                'total'          => 6500000,
+                'status'         => 'Lunas',
             ],
             [
-                'id' => 2,
-                'no_dokumen' => 'TRX-002',
-                'tanggal' => '05 Jan 2026',
-                'gudang' => 'Gudang B',
-                'volume' => 800,
-                'harga' => 7000,
-                'total' => 5600000,
-                'status' => 'Hutang',
+                'id'             => 2,
+                'document_number' => 'TRX-002',
+                'date'           => '05 Jan 2026',
+                'warehouse'      => 'Gudang B',
+                'volume'         => 800,
+                'price'          => 7000,
+                'total'          => 5600000,
+                'status'         => 'Hutang',
             ],
             [
-                'id' => 3,
-                'no_dokumen' => 'TRX-003',
-                'tanggal' => '10 Jan 2026',
-                'gudang' => 'Gudang A',
-                'volume' => 1200,
-                'harga' => 6800,
-                'total' => 8160000,
-                'status' => 'Pending',
+                'id'             => 3,
+                'document_number' => 'TRX-003',
+                'date'           => '10 Jan 2026',
+                'warehouse'      => 'Gudang A',
+                'volume'         => 1200,
+                'price'          => 6800,
+                'total'          => 8160000,
+                'status'         => 'Pending',
             ],
         ];
 
-        // Simulasi pagination
         $txPaginated = [
-            'data' => $transactions,
+            'data'         => $transactions,
             'current_page' => 1,
-            'last_page' => 1,
-            'total' => count($transactions),
+            'last_page'    => 1,
+            'total'        => count($transactions),
         ];
 
-        // ── Ringkasan Hutang ────────────────────────────────────────
-        $totalDibayar = $totalPembelian - $hutangAktif;
-        $persenLunas  = round(($totalDibayar / $totalPembelian) * 100);
+        // ── Debt Summary ────────────────────────────────────────────
+        $totalPaid   = $totalPurchase - $activeDebt;
+        $paidPercent = round(($totalPaid / $totalPurchase) * 100);
 
-        // ── Gudang Distribusi Dummy ─────────────────────────────────
-        $gudangDistribusi = [
-            ['nama' => 'Gudang A', 'persen' => 60],
-            ['nama' => 'Gudang B', 'persen' => 30],
-            ['nama' => 'Gudang C', 'persen' => 10],
+        // ── Warehouse Distribution Dummy ────────────────────────────
+        $warehouseDistribution = [
+            ['name' => 'Gudang A', 'percent' => 60],
+            ['name' => 'Gudang B', 'percent' => 30],
+            ['name' => 'Gudang C', 'percent' => 10],
         ];
 
         // ── Activity Logs Dummy ─────────────────────────────────────
         $activityLogs = [
             [
-                'id' => 1,
+                'id'      => 1,
                 'message' => 'Supplier dibuat',
-                'user' => 'Admin',
-                'waktu' => now()->subDays(2)->translatedFormat('d M Y H:i'),
-                'type' => 'success',
+                'user'    => 'Admin',
+                'time'    => now()->subDays(2)->translatedFormat('d M Y H:i'),
+                'type'    => 'success',
             ],
             [
-                'id' => 2,
+                'id'      => 2,
                 'message' => 'Update data supplier',
-                'user' => 'Admin',
-                'waktu' => now()->subDay()->translatedFormat('d M Y H:i'),
-                'type' => 'info',
+                'user'    => 'Admin',
+                'time'    => now()->subDay()->translatedFormat('d M Y H:i'),
+                'type'    => 'info',
             ],
             [
-                'id' => 3,
+                'id'      => 3,
                 'message' => 'Supplier dinonaktifkan',
-                'user' => 'System',
-                'waktu' => now()->subHours(5)->translatedFormat('d M Y H:i'),
-                'type' => 'warning',
+                'user'    => 'System',
+                'time'    => now()->subHours(5)->translatedFormat('d M Y H:i'),
+                'type'    => 'warning',
             ],
         ];
 
@@ -349,30 +215,30 @@ class SupplierController extends Controller
             'supplier' => $this->formatSupplier($supplier),
 
             'stats' => [
-                'total_pembelian'     => 'Rp ' . number_format($totalPembelian, 0, ',', '.'),
-                'total_pembelian_sub' => $jumlahTransaksi . ' transaksi',
-                'hutang_aktif'        => 'Rp ' . number_format($hutangAktif, 0, ',', '.'),
-                'hutang_aktif_sub'    => 'Ada hutang',
-                'harga_rata_rata'     => number_format($hargaRataRata, 0, ',', '.'),
-                'harga_rata_rata_sub' => 'per kg (Rp)',
-                'total_volume'        => number_format($totalVolume, 0, ',', '.'),
-                'total_volume_sub'    => 'kg diterima',
-                'rating'              => number_format($rating, 1),
-                'rating_sub'          => $ratingLabel,
+                'total_purchase'     => 'Rp ' . number_format($totalPurchase, 0, ',', '.'),
+                'total_purchase_sub' => $transactionCount . ' transaksi',
+                'active_debt'        => 'Rp ' . number_format($activeDebt, 0, ',', '.'),
+                'active_debt_sub'    => 'Ada hutang',
+                'avg_price'          => number_format($avgPrice, 0, ',', '.'),
+                'avg_price_sub'      => 'per kg (Rp)',
+                'total_volume'       => number_format($totalVolume, 0, ',', '.'),
+                'total_volume_sub'   => 'kg diterima',
+                'rating'             => number_format($rating, 1),
+                'rating_sub'         => $ratingLabel,
             ],
 
             'volumeChart'  => $volumeChart,
             'transactions' => $txPaginated,
 
-            'ringkasanHutang' => [
-                'total_pembelian' => 'Rp ' . number_format($totalPembelian, 0, ',', '.'),
-                'total_dibayar'   => 'Rp ' . number_format($totalDibayar, 0, ',', '.'),
-                'hutang_aktif'    => 'Rp ' . number_format($hutangAktif, 0, ',', '.'),
-                'persen_lunas'    => $persenLunas,
+            'debtSummary' => [
+                'total_purchase' => 'Rp ' . number_format($totalPurchase, 0, ',', '.'),
+                'total_paid'     => 'Rp ' . number_format($totalPaid, 0, ',', '.'),
+                'active_debt'    => 'Rp ' . number_format($activeDebt, 0, ',', '.'),
+                'paid_percent'   => $paidPercent,
             ],
 
-            'gudangDistribusi' => $gudangDistribusi,
-            'activityLogs'     => $activityLogs,
+            'warehouseDistribution' => $warehouseDistribution,
+            'activityLogs'          => $activityLogs,
 
             'toggleUrl' => route('master-data.supplier.toggle-status', $supplier->id),
             'editUrl'   => route('master-data.supplier.edit', $supplier->id),
@@ -384,29 +250,29 @@ class SupplierController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama'                => 'required|string|max:255',
-            'telepon'             => 'nullable|string|max:20',
-            'email'               => 'nullable|email|max:255',
-            'city_id'             => 'nullable|exists:cities,id',
-            'kapasitas_per_bulan' => 'nullable|numeric|min:0',
-            'harga_beli_default'  => 'nullable|numeric|min:0',
-            'bank'                => 'nullable|string|max:100',
-            'no_rekening'         => 'nullable|string|max:50',
-            'atas_nama'           => 'nullable|string|max:255',
-            'npwp'                => 'nullable|string|max:30',
-            'pic'                 => 'nullable|string|max:255',
-            'alamat'              => 'nullable|string',
-            'catatan'             => 'nullable|string',
-            'termin'              => 'required|in:cash,tempo',
-            'termin_hari'         => 'nullable|integer|min:1|required_if:termin,tempo',
-            'foto'                => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'name'                   => 'required|string|max:255',
+            'phone'                  => 'nullable|string|max:20',
+            'email'                  => 'nullable|email|max:255',
+            'city_id'                => 'nullable|exists:cities,id',
+            'monthly_capacity'       => 'nullable|numeric|min:0',
+            'default_purchase_price' => 'nullable|numeric|min:0',
+            'bank'                   => 'nullable|string|max:100',
+            'account_number'         => 'nullable|string|max:50',
+            'account_holder'         => 'nullable|string|max:255',
+            'npwp'                   => 'nullable|string|max:30',
+            'pic'                    => 'nullable|string|max:255',
+            'address'                => 'nullable|string',
+            'notes'                  => 'nullable|string',
+            'payment_term'           => 'required|in:cash,tempo',
+            'payment_term_days'      => 'nullable|integer|min:1|required_if:payment_term,tempo',
+            'foto'                   => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
         [$fotoPath, $fotoDisk] = $this->uploadFoto($request);
 
         DB::transaction(function () use ($validated, $fotoPath, $fotoDisk) {
             Supplier::create(array_merge($validated, [
-                'kode'      => Supplier::generateKode(),
+                'code'      => Supplier::generateCode(),
                 'is_active' => true,
                 'foto_path' => $fotoPath,
                 'foto_disk' => $fotoDisk,
@@ -424,22 +290,22 @@ class SupplierController extends Controller
         $supplier = Supplier::findOrFail($id);
 
         $validated = $request->validate([
-            'nama'                => 'sometimes|required|string|max:255',
-            'telepon'             => 'nullable|string|max:20',
-            'email'               => 'nullable|email|max:255',
-            'city_id'             => 'nullable|exists:cities,id',
-            'kapasitas_per_bulan' => 'nullable|numeric|min:0',
-            'harga_beli_default'  => 'nullable|numeric|min:0',
-            'bank'                => 'nullable|string|max:100',
-            'no_rekening'         => 'nullable|string|max:50',
-            'atas_nama'           => 'nullable|string|max:255',
-            'npwp'                => 'nullable|string|max:30',
-            'pic'                 => 'nullable|string|max:255',
-            'alamat'              => 'nullable|string',
-            'catatan'             => 'nullable|string',
-            'termin'              => 'sometimes|required|in:cash,tempo',
-            'termin_hari'         => 'nullable|integer|min:1',
-            'foto'                => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'name'                   => 'sometimes|required|string|max:255',
+            'phone'                  => 'nullable|string|max:20',
+            'email'                  => 'nullable|email|max:255',
+            'city_id'                => 'nullable|exists:cities,id',
+            'monthly_capacity'       => 'nullable|numeric|min:0',
+            'default_purchase_price' => 'nullable|numeric|min:0',
+            'bank'                   => 'nullable|string|max:100',
+            'account_number'         => 'nullable|string|max:50',
+            'account_holder'         => 'nullable|string|max:255',
+            'npwp'                   => 'nullable|string|max:30',
+            'pic'                    => 'nullable|string|max:255',
+            'address'                => 'nullable|string',
+            'notes'                  => 'nullable|string',
+            'payment_term'           => 'sometimes|required|in:cash,tempo',
+            'payment_term_days'      => 'nullable|integer|min:1',
+            'foto'                   => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
         if ($request->hasFile('foto')) {
@@ -470,14 +336,14 @@ class SupplierController extends Controller
         $supplier = Supplier::findOrFail($id);
 
         $request->validate([
-            'alasan_nonaktif' => 'nullable|string|max:255',
-            'catatan'         => 'nullable|string',
+            'inactive_reason' => 'nullable|string|max:255',
+            'notes'           => 'nullable|string',
         ]);
 
         $supplier->update([
             'is_active'       => ! $supplier->is_active,
-            'alasan_nonaktif' => $supplier->is_active ? ($request->alasan_nonaktif ?? null) : null,
-            'catatan'         => $supplier->is_active ? ($request->catatan ?? null) : null,
+            'inactive_reason' => $supplier->is_active ? ($request->inactive_reason ?? null) : null,
+            'notes'           => $supplier->is_active ? ($request->notes ?? null) : null,
         ]);
 
         return redirect()->back()->with(
@@ -508,29 +374,29 @@ class SupplierController extends Controller
     private function formatSupplier(Supplier $s): array
     {
         return [
-            'id'                  => $s->id,
-            'kode'                => $s->kode,
-            'nama'                => $s->nama,
-            'telepon'             => $s->telepon,
-            'email'               => $s->email,
-            'city_id'             => $s->city_id,
-            'city_name'           => $s->city?->nama,
-            'kapasitas_per_bulan' => $s->kapasitas_per_bulan,
-            'harga_beli_default'  => $s->harga_beli_default,
-            'bank'                => $s->bank,
-            'no_rekening'         => $s->no_rekening,
-            'atas_nama'           => $s->atas_nama,
-            'npwp'                => $s->npwp,
-            'pic'                 => $s->pic,
-            'alamat'              => $s->alamat,
-            'catatan'             => $s->catatan,
-            'termin'              => $s->termin,
-            'termin_hari'         => $s->termin_hari,
-            'termin_label'        => $s->termin_label,
-            'is_active'           => $s->is_active,
-            'alasan_nonaktif'     => $s->alasan_nonaktif,
-            'foto_url'            => $s->foto_url,
-            'inisials'            => $s->inisials,
+            'id'                     => $s->id,
+            'code'                   => $s->code,
+            'name'                   => $s->name,
+            'phone'                  => $s->phone,
+            'email'                  => $s->email,
+            'city_id'                => $s->city_id,
+            'city_name'              => $s->city?->name,
+            'monthly_capacity'       => $s->monthly_capacity,
+            'default_purchase_price' => $s->default_purchase_price,
+            'bank'                   => $s->bank,
+            'account_number'         => $s->account_number,
+            'account_holder'         => $s->account_holder,
+            'npwp'                   => $s->npwp,
+            'pic'                    => $s->pic,
+            'address'                => $s->address,
+            'notes'                  => $s->notes,
+            'payment_term'           => $s->payment_term,
+            'payment_term_days'      => $s->payment_term_days,
+            'payment_term_label'     => $s->payment_term_label,
+            'is_active'              => $s->is_active,
+            'inactive_reason'        => $s->inactive_reason,
+            'photo_url'              => $s->foto_url,
+            'initials'               => $s->initials,
         ];
     }
 }

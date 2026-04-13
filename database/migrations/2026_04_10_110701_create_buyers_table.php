@@ -11,23 +11,23 @@ return new class extends Migration
         Schema::create('buyers', function (Blueprint $table) {
             $table->uuid('id')->primary();
 
-            $table->string('kode')->unique();
-            $table->string('nama');
-            $table->enum('tipe', ['PT', 'CV', 'UD', 'Perorangan'])->nullable();
-            $table->string('telepon', 20)->nullable();
+            $table->string('code')->unique();
+            $table->string('name');
+            $table->enum('type', ['PT', 'CV', 'UD', 'Perorangan'])->nullable();
+            $table->string('phone', 20)->nullable();
             $table->string('email')->nullable();
             $table->foreignId('city_id')->nullable()->constrained('cities')->nullOnDelete();
-            $table->decimal('harga_jual_default', 15, 2)->default(0);
-            $table->decimal('limit_kredit', 15, 2)->nullable();
-            $table->unsignedInteger('termin_hari')->nullable();
+            $table->decimal('default_selling_price', 15, 2)->default(0);
+            $table->decimal('credit_limit', 15, 2)->nullable();
+            $table->unsignedInteger('payment_term_days')->nullable();
             $table->string('pic')->nullable();
             $table->string('npwp', 30)->nullable();
             $table->string('website')->nullable();
-            $table->text('alamat')->nullable();
-            $table->text('catatan')->nullable();
+            $table->text('address')->nullable();
+            $table->text('notes')->nullable();
 
             $table->boolean('is_active')->default(true);
-            $table->string('alasan_nonaktif')->nullable();
+            $table->string('inactive_reason')->nullable();
             $table->string('foto_path')->nullable();
             $table->string('foto_disk')->nullable();
 

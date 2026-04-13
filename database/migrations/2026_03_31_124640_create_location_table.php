@@ -10,16 +10,16 @@ return new class extends Migration
     {
         Schema::create('provinces', function (Blueprint $table) {
             $table->id();
-            $table->string('referensi_id', 32)->unique();
-            $table->string('nama', 255);
+            $table->string('reference_id', 32)->unique();
+            $table->string('name', 255);
             $table->timestamps();
         });
 
         Schema::create('cities', function (Blueprint $table) {
             $table->id();
-            $table->string('referensi_id', 32)->unique();
+            $table->string('reference_id', 32)->unique();
             $table->foreignId('province_id')->constrained('provinces')->cascadeOnDelete();
-            $table->string('nama', 255);
+            $table->string('name', 255);
             $table->timestamps();
         });
     }

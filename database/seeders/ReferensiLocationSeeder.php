@@ -13,11 +13,11 @@ class ReferensiLocationSeeder extends Seeder
     {
         // Provinsi
         $this->doExport('provinsi.xlsx', 'provinces', [
-            'referensi_id' => 1,
-            'nama'         => 0,
+            'reference_id' => 1,
+            'name'         => 0,
         ]);
 
-        $provinces = DB::table('provinces')->get()->keyBy('referensi_id');
+        $provinces = DB::table('provinces')->get()->keyBy('reference_id');
 
         // Kota / Kabupaten
         $this->doExport('kabupaten.xlsx', 'cities', function ($item) use ($provinces) {
@@ -27,8 +27,8 @@ class ReferensiLocationSeeder extends Seeder
             if (! $selected_parent) return null;
 
             return [
-                'referensi_id' => $item[1],
-                'nama'         => $item[0],
+                'reference_id' => $item[1],
+                'name'         => $item[0],
                 'province_id'  => $selected_parent->id,
             ];
         });

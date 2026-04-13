@@ -30,8 +30,8 @@ interface PaginatedWarehouses {
 
 interface Stats {
     total: number;
-    aktif: number;
-    nonaktif: number;
+    active: number;
+    inactive: number;
 }
 
 // ── Props ──────────────────────────────────────────────────────
@@ -45,7 +45,7 @@ const props = defineProps<{
         search?: string;
         perPage?: number;
         status?: string;
-        tipe?: string;
+        type?: string;
         city_id?: string;
     };
 }>();
@@ -63,7 +63,7 @@ const searchQuery = ref(props.filters.search ?? '');
 const perPage = ref(props.filters.perPage ?? 12);
 const filterValues = ref<FilterValues>({
     status: props.filters.status ?? undefined,
-    tipe: props.filters.tipe ?? undefined,
+    type: props.filters.type ?? undefined,
     city_id: props.filters.city_id ?? undefined,
 });
 
@@ -76,7 +76,7 @@ const filterFields = [
         ],
     },
     {
-        key: 'tipe', label: 'Tipe', type: 'select' as const,
+        key: 'type', label: 'Tipe', type: 'select' as const,
         options: [
             { label: 'Utama', value: 'Utama' },
             { label: 'Cabang', value: 'Cabang' },
@@ -164,7 +164,7 @@ function formatKg(val: number | null | undefined) {
 // All warehouses for transfer (simplified)
 const allWarehousesForTransfer = props.warehouses.data.map(g => ({
     id: g.id,
-    label: `${g.nama} (${g.kode})`,
+    label: `${g.name} (${g.code})`,
 }));
 </script>
 
@@ -213,9 +213,9 @@ const allWarehousesForTransfer = props.warehouses.data.map(g => ({
                     <div class="flex items-start justify-between px-4 pt-4 pb-2">
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 mb-0.5">
-                                <h3 class="text-[14px] font-semibold text-gray-900 truncate">{{ warehouse.nama }}</h3>
+                                <h3 class="text-[14px] font-semibold text-gray-900 truncate">{{ warehouse.name }}</h3>
                             </div>
-                            <p class="text-[12px] text-gray-400 truncate">{{ warehouse.alamat ?? warehouse.city_name ?? '—' }}
+                            <p class="text-[12px] text-gray-400 truncate">{{ warehouse.address ?? warehouse.city_name ?? '—' }}
                             </p>
                         </div>
                         <span
@@ -226,10 +226,10 @@ const allWarehousesForTransfer = props.warehouses.data.map(g => ({
                     </div>
 
                     <!-- Tipe badge (optional) -->
-                    <div v-if="warehouse.tipe" class="px-4 pb-2">
+                    <div v-if="warehouse.type" class="px-4 pb-2">
                         <span class="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold"
-                            :class="tipeColor[warehouse.tipe] ?? 'bg-gray-100 text-gray-600'">
-                            {{ warehouse.tipe }}
+                            :class="tipeColor[warehouse.type] ?? 'bg-gray-100 text-gray-600'">
+                            {{ warehouse.type }}
                         </span>
                     </div>
 
@@ -237,19 +237,19 @@ const allWarehousesForTransfer = props.warehouses.data.map(g => ({
                     <div class="px-4 pb-1">
                         <div class="flex items-center justify-between mb-1">
                             <span class="text-[13px] font-bold text-gray-800">
-                                {{ formatKg(warehouse.stok_saat_ini) }} kg
-                                <span :class="utilisasiTextColor(warehouse.utilisasi ?? 0)"
+                                {{ formatKg(warehouse.current_stock) }} kg
+                                <span :class="utilisasiTextColor(warehouse.occupancy ?? 0)"
                                     class="text-[11px] font-semibold ml-0.5">
-                                    ({{ warehouse.utilisasi ?? 0 }}%)
+                                    ({{ warehouse.occupancy ?? 0 }}%)
                                 </span>
                             </span>
-                            <span class="text-[12px] text-gray-400">{{ formatKg(warehouse.kapasitas_maks)
+                            <span class="text-[12px] text-gray-400">{{ formatKg(warehouse.capacity_max)
                                 }}&thinsp;kg</span>
                         </div>
                         <div class="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
                             <div class="h-1.5 rounded-full transition-all"
-                                :class="utilisasiColor(warehouse.utilisasi ?? 0)"
-                                :style="{ width: (warehouse.utilisasi ?? 0) + '%' }" />
+                                :class="utilisasiColor(warehouse.occupancy ?? 0)"
+                                :style="{ width: (warehouse.occupancy ?? 0) + '%' }" />
                         </div>
                     </div>
 

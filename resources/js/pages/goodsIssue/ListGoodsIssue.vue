@@ -2,16 +2,17 @@
 import { Head, router } from '@inertiajs/vue3';
 import {
     Search,
-    Pencil,
-    Trash2,
     ChevronUp,
     ChevronDown,
     Plus,
     EllipsisVertical,
     Eye,
-    Upload,
-    CheckCircle2,
-    XCircle,
+    Pencil,
+    Trash2,
+    Download,
+    PackageOpen,
+    DollarSign,
+    BarChart3,
 } from 'lucide-vue-next';
 import { ref, watch, computed } from 'vue';
 import { toast } from 'vue-sonner';
@@ -42,14 +43,13 @@ import TablePagination from '@/components/TablePagination.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 
-import BuyerFormModal from '@/components/Buyer/BuyerFormModal.vue';
-import type { Buyer, City } from '@/components/Buyer/BuyerFormModal.vue';
-import BuyerStatusModal from '@/components/Buyer/BuyerStatusModal.vue';
+import GoodsIssueFormModal from '@/components/GoodsIssue/GoodsIssueFormModal.vue';
+import type { GoodsIssue, BuyerOption, WarehouseOption } from '@/components/GoodsIssue/GoodsIssueFormModal.vue';
 
 // ── Types ──────────────────────────────────────────────────────
 
-interface PaginatedBuyers {
-    data: Buyer[];
+interface PaginatedGoodsIssues {
+    data: GoodsIssue[];
     current_page: number;
     last_page: number;
     per_page: number;
@@ -60,24 +60,30 @@ interface PaginatedBuyers {
 }
 
 interface Stats {
-    total: number;
-    active: number;
-    inactive: number;
+    total_uco_out: number;
+    total_uco_out_trend: number;
+    total_uco_out_up: boolean;
+    total_sales: number;
+    total_transactions: number;
 }
 
 // ── Props ──────────────────────────────────────────────────────
 
 const props = defineProps<{
-    buyers: PaginatedBuyers;
+    goodsIssues: PaginatedGoodsIssues;
     stats: Stats;
-    cities: City[];
-    allCities: City[];
+    buyers: { id: string; name: string }[];
+    warehouses: { id: number; name: string }[];
+    allBuyers: BuyerOption[];
+    allWarehouses: WarehouseOption[];
     filters: {
         search?: string;
         perPage?: number;
         status?: string;
-        type?: string;
-        city_id?: string;
+        buyer_id?: string;
+        warehouse_id?: string;
+        date_from?: string;
+        date_to?: string;
         sort?: string;
         direction?: 'asc' | 'desc';
     };
@@ -86,15 +92,14 @@ const props = defineProps<{
 // ── Breadcrumbs ────────────────────────────────────────────────
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Master Data', href: '#' },
-    { title: 'Buyer (Customer)', href: '/master-data/buyer' },
+    { title: 'Barang Keluar', href: '/goods-issue' },
 ];
 
 // ── Table State ────────────────────────────────────────────────
 
 const searchQuery = ref(props.filters.search ?? '');
 const perPage = ref(props.filters.perPage ?? 10);
-const sortColumn = ref(props.filters.sort ?? 'created_at');
+const sortColumn = ref(props.filters.sort ?? 'date');
 const sortDirection = ref<'asc' | 'desc'>(props.filters.direction ?? 'desc');
 
 const filterFields = computed(() => [
@@ -103,33 +108,30 @@ const filterFields = computed(() => [
         label: 'Status',
         type: 'select' as const,
         options: [
-            { label: 'Aktif', value: 'active' },
-            { label: 'Non Aktif', value: 'inactive' },
+            { label: 'Pending', value: 'pending' },
+            { label: 'Shipped', value: 'shipped' },
+            { label: 'Delivered', value: 'delivered' },
+            { label: 'Cancelled', value: 'cancelled' },
         ],
     },
     {
-        key: 'type',
-        label: 'Tipe',
+        key: 'buyer_id',
+        label: 'Buyer',
         type: 'select' as const,
-        options: [
-            { label: 'PT', value: 'PT' },
-            { label: 'CV', value: 'CV' },
-            { label: 'UD', value: 'UD' },
-            { label: 'Perorangan', value: 'Perorangan' },
-        ],
+        options: props.buyers.map((b) => ({ label: b.name, value: String(b.id) })),
     },
     {
-        key: 'city_id',
-        label: 'Kota',
+        key: 'warehouse_id',
+        label: 'Gudang',
         type: 'select' as const,
-        options: props.cities.map((c) => ({ label: c.name, value: String(c.id) })),
+        options: props.warehouses.map((w) => ({ label: w.name, value: String(w.id) })),
     },
 ]);
 
 const filterValues = ref<FilterValues>({
     status: props.filters.status ?? undefined,
-    type: props.filters.type ?? undefined,
-    city_id: props.filters.city_id ?? undefined,
+    buyer_id: props.filters.buyer_id ?? undefined,
+    warehouse_id: props.filters.warehouse_id ?? undefined,
 });
 
 const buildParams = (extra: FilterValues = {}) => ({
@@ -147,17 +149,17 @@ const handleSort = (column: string) => {
         sortColumn.value = column;
         sortDirection.value = 'asc';
     }
-    router.get('/master-data/buyer', buildParams(filterValues.value), { preserveState: true, replace: true });
+    router.get('/goods-issue', buildParams(filterValues.value), { preserveState: true, replace: true });
 };
 
 const handleFilter = (values: FilterValues) => {
     filterValues.value = values;
-    router.get('/master-data/buyer', buildParams(values), { preserveState: true, replace: true });
+    router.get('/goods-issue', buildParams(values), { preserveState: true, replace: true });
 };
 
 const handleFilterReset = () => {
     filterValues.value = {};
-    router.get('/master-data/buyer', buildParams({}), { preserveState: true, replace: true });
+    router.get('/goods-issue', buildParams({}), { preserveState: true, replace: true });
 };
 
 const goToPage = (url: string | null) => {
@@ -170,74 +172,86 @@ watch(searchQuery, (val) => {
     clearTimeout(searchTimeout);
     if (val.length === 0 || val.length >= 3) {
         searchTimeout = setTimeout(() => {
-            router.get('/master-data/buyer', buildParams(filterValues.value), { preserveState: true, replace: true });
+            router.get('/goods-issue', buildParams(filterValues.value), { preserveState: true, replace: true });
         }, 400);
     }
 });
 
 watch(perPage, () => {
-    router.get('/master-data/buyer', buildParams(filterValues.value), { preserveState: true, replace: true });
+    router.get('/goods-issue', buildParams(filterValues.value), { preserveState: true, replace: true });
 });
 
 // ── Form Modal ─────────────────────────────────────────────────
 
 const isFormOpen = ref(false);
-const editingBuyer = ref<Buyer | null>(null);
+const editingGoodsIssue = ref<GoodsIssue | null>(null);
 
 function openCreate() {
-    editingBuyer.value = null;
+    editingGoodsIssue.value = null;
     isFormOpen.value = true;
 }
 
-function openEdit(buyer: Buyer) {
-    editingBuyer.value = buyer;
+function openEdit(gi: GoodsIssue) {
+    editingGoodsIssue.value = gi;
     isFormOpen.value = true;
 }
 
-// ── Status Modal ───────────────────────────────────────────────
+// ── Update Status ──────────────────────────────────────────────
 
-const isStatusOpen = ref(false);
-const statusBuyer = ref<Buyer | null>(null);
+type GoodsIssueStatus = GoodsIssue['status'];
 
-function openStatus(buyer: Buyer) {
-    statusBuyer.value = buyer;
-    isStatusOpen.value = true;
+const STATUS_NEXT: Record<GoodsIssueStatus, GoodsIssueStatus> = {
+    pending: 'shipped',
+    shipped: 'delivered',
+    delivered: 'delivered',
+    cancelled: 'cancelled',
+};
+
+const STATUS_NEXT_LABEL: Record<GoodsIssueStatus, string> = {
+    pending: 'Tandai Shipped',
+    shipped: 'Tandai Delivered',
+    delivered: '—',
+    cancelled: '—',
+};
+
+function updateStatus(gi: GoodsIssue, status: GoodsIssueStatus) {
+    router.patch(
+        `/goods-issue/${gi.id}/update-status`,
+        { status },
+        {
+            preserveScroll: true,
+            onSuccess: () => toast.success('Berhasil!', { description: `Status diubah menjadi ${status}` }),
+            onError: () => toast.error('Gagal!', { description: 'Gagal mengubah status' }),
+        },
+    );
 }
 
 // ── Delete ─────────────────────────────────────────────────────
 
 const isDeleteOpen = ref(false);
-const deletingBuyer = ref<Buyer | null>(null);
+const deletingGi = ref<GoodsIssue | null>(null);
 const isDeleting = ref(false);
 
-function openDelete(buyer: Buyer) {
-    deletingBuyer.value = buyer;
+function openDelete(gi: GoodsIssue) {
+    deletingGi.value = gi;
     isDeleteOpen.value = true;
 }
 
 function confirmDelete() {
-    if (!deletingBuyer.value) return;
+    if (!deletingGi.value) return;
     isDeleting.value = true;
-    router.delete(`/master-data/buyer/${deletingBuyer.value.id}`, {
+    router.delete(`/goods-issue/${deletingGi.value.id}`, {
         preserveScroll: true,
         onSuccess: () => {
-            toast.success('Berhasil!', { description: 'Buyer berhasil dihapus' });
+            toast.success('Berhasil!', { description: 'Data barang keluar berhasil dihapus' });
             isDeleteOpen.value = false;
         },
-        onError: () => toast.error('Gagal!', { description: 'Gagal menghapus buyer' }),
+        onError: () => toast.error('Gagal!', { description: 'Gagal menghapus data' }),
         onFinish: () => { isDeleting.value = false; },
     });
 }
 
 // ── Helpers ────────────────────────────────────────────────────
-
-const getInitials = (nama: string) =>
-    nama.split(' ').slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('');
-
-const formatCurrency = (val: number | null | undefined) => {
-    if (val == null) return '—';
-    return 'Rp ' + new Intl.NumberFormat('id-ID').format(val);
-};
 
 const sortClass = (col: string) =>
     sortColumn.value === col ? 'text-[#007C95]' : 'text-gray-500 hover:text-gray-700';
@@ -245,40 +259,96 @@ const sortClass = (col: string) =>
 const chevronClass = (col: string, dir: 'asc' | 'desc') =>
     sortColumn.value === col && sortDirection.value === dir ? 'text-[#007C95]' : 'text-gray-300';
 
-const tipeColor: Record<string, string> = {
-    PT: 'bg-blue-50 text-blue-700',
-    CV: 'bg-purple-50 text-purple-700',
-    UD: 'bg-orange-50 text-orange-700',
-    Perorangan: 'bg-gray-100 text-gray-700',
+const formatRupiah = (val: number) =>
+    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
+
+const formatVolume = (val: number) =>
+    new Intl.NumberFormat('id-ID').format(val) + ' kg';
+
+const formatTanggal = (val: string) =>
+    new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(val));
+
+const statusBadgeClass: Record<string, string> = {
+    pending: 'bg-amber-50 text-amber-600',
+    shipped: 'bg-blue-50 text-blue-600',
+    delivered: 'bg-emerald-50 text-emerald-700',
+    cancelled: 'bg-red-50 text-red-600',
 };
 </script>
 
 <template>
 
-    <Head title="Buyer" />
+    <Head title="Barang Keluar" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-col gap-6 p-4 pb-10 md:p-6">
 
-            <!-- Header -->
+            <!-- ── Header ─────────────────────────────────────── -->
             <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div class="flex-1 min-w-0">
-                    <h1 class="text-[24px] font-bold text-gray-900">Buyer / Pembeli</h1>
-                    <p class="mt-0.5 text-[16px] text-gray-500">Kelola data pembeli minyak jelantah</p>
+                    <h1 class="text-[24px] font-bold text-gray-900">Barang Keluar</h1>
+                    <p class="mt-0.5 text-[16px] text-gray-500">Pencatatan penjualan minyak jelantah ke buyer</p>
                 </div>
+
                 <div class="flex w-full justify-end md:w-auto md:flex-shrink-0">
                     <div class="flex flex-col gap-2 md:flex-row">
+                        <Button variant="outline"
+                            class="flex w-fit items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium">
+                            <Download class="size-4" />
+                            Export
+                        </Button>
                         <Button
                             class="flex w-fit items-center justify-center gap-1.5 rounded-lg bg-[#007C95] px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-[#006b80]"
                             @click="openCreate">
                             <Plus class="size-4" />
-                            Tambah Buyer
+                            Tambah Barang Keluar
                         </Button>
                     </div>
                 </div>
             </div>
 
-            <!-- Toolbar -->
+            <!-- ── Stats Cards ────────────────────────────────── -->
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+
+                <div class="bg-white rounded-xl border border-[#EDEDED] shadow-sm p-4 flex flex-col gap-1">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[14px] text-[#101010] font-semibold">Total UCO Keluar</span>
+                        <PackageOpen class="size-4 text-gray-300" />
+                    </div>
+                    <p class="text-[24px] font-bold tracking-tight text-[#101010]">
+                        {{ formatVolume(stats.total_uco_out) }}
+                    </p>
+                    <p class="text-xs" :class="stats.total_uco_out_up ? 'text-emerald-600' : 'text-rose-500'">
+                        <span>{{ stats.total_uco_out_up ? '▲' : '▼' }}</span>
+                        {{ stats.total_uco_out_trend }}% from last month
+                    </p>
+                </div>
+
+                <div class="bg-white rounded-xl border border-[#EDEDED] shadow-sm p-4 flex flex-col gap-1">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[14px] text-[#101010] font-semibold">Total Penjualan</span>
+                        <DollarSign class="size-4 text-gray-300" />
+                    </div>
+                    <p class="text-[24px] font-bold tracking-tight text-[#101010]">
+                        {{ formatRupiah(stats.total_sales) }}
+                    </p>
+                    <p class="text-xs text-gray-400">Total value</p>
+                </div>
+
+                <div class="bg-white rounded-xl border border-[#EDEDED] shadow-sm p-4 flex flex-col gap-1">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[14px] text-[#101010] font-semibold">Total Transaksi</span>
+                        <BarChart3 class="size-4 text-gray-300" />
+                    </div>
+                    <p class="text-[24px] font-bold tracking-tight text-[#101010]">
+                        {{ stats.total_transactions }}
+                    </p>
+                    <p class="text-xs text-gray-400">Semua transaksi</p>
+                </div>
+
+            </div>
+
+            <!-- ── Toolbar ─────────────────────────────────────── -->
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div class="flex items-center gap-2">
                     <select v-model="perPage"
@@ -290,93 +360,97 @@ const tipeColor: Record<string, string> = {
                     </select>
                     <span class="text-sm text-gray-500">Entri per halaman</span>
                 </div>
+
                 <div class="flex items-center gap-2">
                     <TableFilter :filters="filterFields" :model-value="filterValues" @update:model-value="handleFilter"
                         @reset="handleFilterReset" />
                     <div class="relative flex-1 sm:flex-none">
                         <Search class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-gray-400" />
-                        <input v-model="searchQuery" type="text" placeholder="Cari buyer..."
-                            class="h-[45px] w-full rounded-lg border border-gray-300 bg-white py-2 pr-3 pl-9 text-sm placeholder-gray-400 focus:border-[#007C95] focus:ring-1 focus:ring-[#007C95] focus:outline-none sm:w-56" />
+                        <input v-model="searchQuery" type="text" placeholder="Cari no. transaksi / buyer..."
+                            class="h-[45px] w-full rounded-lg border border-gray-300 bg-white py-2 pr-3 pl-9 text-sm placeholder-gray-400 focus:border-[#007C95] focus:ring-1 focus:ring-[#007C95] focus:outline-none sm:w-64" />
                     </div>
                 </div>
             </div>
 
-            <!-- Table -->
+            <!-- ── Table ──────────────────────────────────────── -->
             <div>
                 <div class="overflow-hidden rounded-xl border-gray-200 bg-white">
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm">
                             <thead>
                                 <tr class="border-b border-gray-200 bg-[#F9F9F9]">
+
                                     <th class="px-4 py-3 text-left">
                                         <button
                                             class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition"
-                                            :class="sortClass('code')" @click="handleSort('code')">
-                                            Kode
+                                            :class="sortClass('transaction_number')" @click="handleSort('transaction_number')">
+                                            No Transaksi
                                             <span class="flex flex-col">
                                                 <ChevronUp class="size-3 -mb-0.5"
-                                                    :class="chevronClass('code', 'asc')" />
+                                                    :class="chevronClass('transaction_number', 'asc')" />
                                                 <ChevronDown class="size-3 -mt-0.5"
-                                                    :class="chevronClass('code', 'desc')" />
+                                                    :class="chevronClass('transaction_number', 'desc')" />
                                             </span>
                                         </button>
                                     </th>
+
                                     <th class="px-4 py-3 text-left">
                                         <button
                                             class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition"
-                                            :class="sortClass('name')" @click="handleSort('name')">
-                                            Nama Buyer
+                                            :class="sortClass('date')" @click="handleSort('date')">
+                                            Tanggal
                                             <span class="flex flex-col">
                                                 <ChevronUp class="size-3 -mb-0.5"
-                                                    :class="chevronClass('name', 'asc')" />
+                                                    :class="chevronClass('date', 'asc')" />
                                                 <ChevronDown class="size-3 -mt-0.5"
-                                                    :class="chevronClass('name', 'desc')" />
+                                                    :class="chevronClass('date', 'desc')" />
                                             </span>
                                         </button>
                                     </th>
+
                                     <th class="px-4 py-3 text-left">
                                         <span
-                                            class="text-xs font-semibold uppercase tracking-wider text-gray-500">Tipe</span>
+                                            class="text-xs font-semibold uppercase tracking-wider text-gray-500">Buyer</span>
                                     </th>
+
                                     <th class="px-4 py-3 text-left">
                                         <span
-                                            class="text-xs font-semibold uppercase tracking-wider text-gray-500">Kontak</span>
+                                            class="text-xs font-semibold uppercase tracking-wider text-gray-500">Gudang</span>
                                     </th>
-                                    <th class="px-4 py-3 text-left">
-                                        <span
-                                            class="text-xs font-semibold uppercase tracking-wider text-gray-500">Lokasi</span>
-                                    </th>
+
                                     <th class="px-4 py-3 text-left">
                                         <button
                                             class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition"
-                                            :class="sortClass('total_sales')"
-                                            @click="handleSort('total_sales')">
-                                            Total Penjualan
+                                            :class="sortClass('volume')" @click="handleSort('volume')">
+                                            Volume
                                             <span class="flex flex-col">
                                                 <ChevronUp class="size-3 -mb-0.5"
-                                                    :class="chevronClass('total_sales', 'asc')" />
+                                                    :class="chevronClass('volume', 'asc')" />
                                                 <ChevronDown class="size-3 -mt-0.5"
-                                                    :class="chevronClass('total_sales', 'desc')" />
+                                                    :class="chevronClass('volume', 'desc')" />
                                             </span>
                                         </button>
                                     </th>
+
                                     <th class="px-4 py-3 text-left">
                                         <button
                                             class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition"
-                                            :class="sortClass('total_receivable')" @click="handleSort('total_receivable')">
-                                            Piutang
+                                            :class="sortClass('selling_price')" @click="handleSort('selling_price')">
+                                            Harga Jual
                                             <span class="flex flex-col">
                                                 <ChevronUp class="size-3 -mb-0.5"
-                                                    :class="chevronClass('total_receivable', 'asc')" />
+                                                    :class="chevronClass('selling_price', 'asc')" />
                                                 <ChevronDown class="size-3 -mt-0.5"
-                                                    :class="chevronClass('total_receivable', 'desc')" />
+                                                    :class="chevronClass('selling_price', 'desc')" />
                                             </span>
                                         </button>
                                     </th>
+
                                     <th class="px-4 py-3 text-left">
                                         <span
                                             class="text-xs font-semibold uppercase tracking-wider text-gray-500">Status</span>
                                     </th>
+
                                     <th class="px-4 py-3 text-left w-[50px]">
                                         <span
                                             class="text-xs font-semibold uppercase tracking-wider text-gray-500">Aksi</span>
@@ -385,74 +459,42 @@ const tipeColor: Record<string, string> = {
                             </thead>
 
                             <tbody class="divide-y divide-gray-100">
-                                <tr v-for="buyer in buyers.data" :key="buyer.id" class="transition hover:bg-gray-50/60">
+                                <tr v-for="item in goodsIssues.data" :key="item.id"
+                                    class="transition hover:bg-gray-50/60">
 
-                                    <!-- Kode -->
                                     <td class="px-4 py-3 whitespace-nowrap">
-                                        <span class="font-mono text-xs text-gray-500">{{ buyer.code }}</span>
+                                        <span class="font-mono text-xs text-gray-700 font-medium">{{ item.transaction_number
+                                            }}</span>
                                     </td>
 
-                                    <!-- Nama -->
-                                    <td class="px-4 py-3 whitespace-nowrap">
-                                        <div class="flex items-center gap-3">
-                                            <img v-if="buyer.photo_url" :src="buyer.photo_url" :alt="buyer.name"
-                                                class="size-8 shrink-0 rounded-full border border-gray-200 object-cover" />
-                                            <div v-else
-                                                class="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#007C95]/10">
-                                                <span class="text-xs font-semibold text-[#007C95]">
-                                                    {{ getInitials(buyer.name) }}
-                                                </span>
-                                            </div>
-                                            <div>
-                                                <p class="font-medium text-gray-900">{{ buyer.name }}</p>
-                                                <p v-if="buyer.email" class="text-xs text-gray-400">{{ buyer.email }}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </td>
-
-                                    <!-- Tipe -->
-                                    <td class="px-4 py-3 whitespace-nowrap">
-                                        <span v-if="buyer.type"
-                                            class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold"
-                                            :class="tipeColor[buyer.type] ?? 'bg-gray-100 text-gray-700'">
-                                            {{ buyer.type }}
-                                        </span>
-                                        <span v-else class="text-gray-400">—</span>
-                                    </td>
-
-                                    <!-- Kontak -->
                                     <td class="px-4 py-3 whitespace-nowrap text-gray-500">
-                                        {{ buyer.phone ?? '—' }}
+                                        {{ formatTanggal(item.date) }}
                                     </td>
 
-                                    <!-- Lokasi -->
+                                    <td class="px-4 py-3 whitespace-nowrap text-gray-700">
+                                        {{ item.buyer_name }}
+                                    </td>
+
                                     <td class="px-4 py-3 whitespace-nowrap text-gray-500">
-                                        {{ buyer.city_name ?? '—' }}
+                                        {{ item.warehouse_name }}
                                     </td>
 
-                                    <!-- Total Penjualan -->
                                     <td class="px-4 py-3 whitespace-nowrap text-gray-700">
-                                        {{ formatCurrency(buyer.total_sales) }}
+                                        {{ formatVolume(item.volume) }}
                                     </td>
 
-                                    <!-- Piutang -->
                                     <td class="px-4 py-3 whitespace-nowrap text-gray-700">
-                                        {{ formatCurrency(buyer.total_receivable) }}
+                                        {{ formatRupiah(item.selling_price) }}
                                     </td>
 
-                                    <!-- Status -->
                                     <td class="px-4 py-3 whitespace-nowrap">
                                         <span
                                             class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                                            :class="buyer.is_active
-                                                ? 'bg-emerald-50 text-emerald-700'
-                                                : 'bg-rose-50 text-rose-600'">
-                                            {{ buyer.is_active ? 'Aktif' : 'Non Aktif' }}
+                                            :class="statusBadgeClass[item.status] ?? 'bg-gray-100 text-gray-600'">
+                                            {{ item.status_label }}
                                         </span>
                                     </td>
 
-                                    <!-- Aksi -->
                                     <td class="px-4 py-3 whitespace-nowrap w-[50px]">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger as-child>
@@ -461,42 +503,55 @@ const tipeColor: Record<string, string> = {
                                                     <EllipsisVertical class="size-4" />
                                                 </button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" class="w-44">
+                                            <DropdownMenuContent align="end" class="w-48">
                                                 <DropdownMenuItem class="gap-2 text-sm"
-                                                    @click="router.get(`/master-data/buyer/${buyer.id}`)">
+                                                    @click="router.get(`/goods-issue/${item.id}`)">
                                                     <Eye class="size-3.5" />
                                                     Lihat Detail
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem class="gap-2 text-sm" @click="openEdit(buyer)">
+                                                <DropdownMenuItem class="gap-2 text-sm" @click="openEdit(item)">
                                                     <Pencil class="size-3.5" />
                                                     Ubah Data
                                                 </DropdownMenuItem>
+
+                                                <!-- Status progression -->
+                                                <template v-if="item.status === 'pending' || item.status === 'shipped'">
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem
+                                                        class="gap-2 text-sm text-blue-600 focus:text-blue-600"
+                                                        @click="updateStatus(item, STATUS_NEXT[item.status])">
+                                                        {{ STATUS_NEXT_LABEL[item.status] }}
+                                                    </DropdownMenuItem>
+                                                </template>
+
+                                                <!-- Cancel (only from pending) -->
+                                                <template v-if="item.status === 'pending'">
+                                                    <DropdownMenuItem
+                                                        class="gap-2 text-sm text-red-500 focus:text-red-500"
+                                                        @click="updateStatus(item, 'cancelled')">
+                                                        Batalkan
+                                                    </DropdownMenuItem>
+                                                </template>
+
                                                 <DropdownMenuSeparator />
-                                                <DropdownMenuItem class="gap-2 text-sm" :class="buyer.is_active
-                                                    ? 'text-amber-600 focus:text-amber-600'
-                                                    : 'text-emerald-600 focus:text-emerald-600'"
-                                                    @click="openStatus(buyer)">
-                                                    <component :is="buyer.is_active ? XCircle : CheckCircle2"
-                                                        class="size-3.5" />
-                                                    {{ buyer.is_active ? 'Nonaktifkan' : 'Aktifkan' }}
-                                                </DropdownMenuItem>
-                                                <!-- <DropdownMenuItem class="gap-2 text-sm text-red-600 focus:text-red-600"
-                                                    @click="openDelete(buyer)">
+                                                <DropdownMenuItem class="gap-2 text-sm text-red-600 focus:text-red-600"
+                                                    @click="openDelete(item)">
                                                     <Trash2 class="size-3.5" />
                                                     Hapus
-                                                </DropdownMenuItem> -->
+                                                </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </td>
                                 </tr>
 
                                 <!-- Empty State -->
-                                <tr v-if="buyers.data.length === 0">
-                                    <td colspan="9" class="px-5 py-10 text-center">
+                                <tr v-if="goodsIssues.data.length === 0">
+                                    <td colspan="8" class="px-5 py-10 text-center">
                                         <div class="flex flex-col items-center gap-2">
                                             <Vue3Lottie :animationData="emptyAnimation" :height="160" :width="160"
                                                 :loop="true" />
-                                            <p class="text-sm font-medium text-gray-600">Tidak ada data Buyer</p>
+                                            <p class="text-sm font-medium text-gray-600">Tidak ada data Barang Keluar
+                                            </p>
                                             <p class="text-xs text-gray-400">Coba ubah kata kunci pencarian atau filter
                                             </p>
                                         </div>
@@ -507,32 +562,28 @@ const tipeColor: Record<string, string> = {
                     </div>
                 </div>
 
-                <TablePagination :paginator="buyers" @navigate="goToPage" />
+                <TablePagination :paginator="goodsIssues" @navigate="goToPage" />
             </div>
 
         </div>
 
-        <!-- Modals -->
-        <BuyerFormModal v-model:open="isFormOpen" :editing-buyer="editingBuyer" :cities="allCities"
-            post-url="/master-data/buyer" @success="toast.success('Berhasil!', {
-                description: editingBuyer
-                    ? 'Data buyer berhasil diperbarui'
-                    : 'Buyer baru berhasil ditambahkan'
+        <!-- ── Modals ─────────────────────────────────────────── -->
+
+        <GoodsIssueFormModal v-model:open="isFormOpen" :editing-goods-issue="editingGoodsIssue" post-url="/goods-issue"
+            :buyers="allBuyers" :warehouses="allWarehouses" @success="toast.success('Berhasil!', {
+                description: editingGoodsIssue
+                    ? 'Data barang keluar berhasil diperbarui'
+                    : 'Barang keluar berhasil dicatat'
             })" />
 
-        <BuyerStatusModal v-model:open="isStatusOpen" :buyer="statusBuyer" toggle-url="/master-data/buyer" @success="toast.success('Berhasil!', {
-            description: statusBuyer?.is_active
-                ? 'Buyer berhasil dinonaktifkan'
-                : 'Buyer berhasil diaktifkan'
-        })" />
-
+        <!-- Delete Confirmation -->
         <AlertDialog v-model:open="isDeleteOpen">
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Hapus Buyer</AlertDialogTitle>
+                    <AlertDialogTitle>Hapus Data Barang Keluar</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Apakah Anda yakin ingin menghapus buyer
-                        <strong>{{ deletingBuyer?.name }}</strong>?
+                        Apakah Anda yakin ingin menghapus transaksi
+                        <strong>{{ deletingGi?.transaction_number }}</strong>?
                         Tindakan ini tidak dapat dibatalkan.
                     </AlertDialogDescription>
                 </AlertDialogHeader>

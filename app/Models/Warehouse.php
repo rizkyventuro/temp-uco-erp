@@ -14,28 +14,28 @@ class Warehouse extends Model
     protected $table = 'warehouses';
 
     protected $fillable = [
-        'kode',
-        'nama',
+        'code',
+        'name',
         'city_id',
-        'tipe',
-        'alamat',
+        'type',
+        'address',
         'pic',
-        'telepon_pic',
-        'kapasitas_maks',
-        'stok_minimum',
-        'harga_estimasi',
-        'biaya_operasional',
+        'pic_phone',
+        'capacity_max',
+        'min_stock',
+        'price_estimate',
+        'operating_cost',
         'is_active',
-        'alasan_nonaktif',
-        'catatan',
+        'inactive_reason',
+        'notes',
     ];
 
     protected $casts = [
-        'kapasitas_maks'    => 'decimal:2',
-        'stok_minimum'      => 'decimal:2',
-        'harga_estimasi'    => 'decimal:2',
-        'biaya_operasional' => 'decimal:2',
-        'is_active'         => 'boolean',
+        'capacity_max'   => 'decimal:2',
+        'min_stock'      => 'decimal:2',
+        'price_estimate' => 'decimal:2',
+        'operating_cost' => 'decimal:2',
+        'is_active'      => 'boolean',
     ];
 
     // ── Relationships ──────────────────────────────────────────
@@ -60,29 +60,28 @@ class Warehouse extends Model
     // ── Accessors ──────────────────────────────────────────────
 
     /**
-     * Stok saat ini (dari tabel stok / inventory — sesuaikan dengan model stok Anda).
-     * Sementara return 0 agar tidak error sebelum relasi stok dibuat.
+     * Current stock (from inventory table — replace with real query when available).
      */
-    public function getStokSaatIniAttribute(): float
+    public function getCurrentStockAttribute(): float
     {
-        // TODO: ganti dengan query real ke tabel stok
+        // TODO: replace with real query against inventory table
         return 0;
     }
 
     /**
-     * Persentase utilisasi kapasitas.
+     * Capacity occupancy percentage.
      */
-    public function getUtilisasiPersen(): float
+    public function getOccupancyPercent(): float
     {
-        if ((float) $this->kapasitas_maks <= 0) return 0;
-        return round(($this->stok_saat_ini / (float) $this->kapasitas_maks) * 100, 1);
+        if ((float) $this->capacity_max <= 0) return 0;
+        return round(($this->current_stock / (float) $this->capacity_max) * 100, 1);
     }
 
     // ── Static Helpers ─────────────────────────────────────────
 
-    public static function generateKode(): string
+    public static function generateCode(): string
     {
-        $last = self::withTrashed()->orderByDesc('id')->value('kode');
+        $last = self::withTrashed()->orderByDesc('id')->value('code');
         if (!$last) return 'GDG-001';
 
         $num = (int) substr($last, 4);
