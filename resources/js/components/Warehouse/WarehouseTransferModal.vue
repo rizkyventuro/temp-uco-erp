@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { Warehouse } from './WarehouseFormModal.vue';
 
 interface WarehouseOption {
     id: string | number;
@@ -24,7 +23,7 @@ interface WarehouseOption {
 
 const props = defineProps<{
     open: boolean;
-    sourceWarehouse?: Warehouse | null;
+    sourceWarehouse?: any | null;      // bisa null jika dipanggil dari halaman Transfer Stok
     allWarehouses: WarehouseOption[];
     transferUrl: string;
 }>();
@@ -44,6 +43,9 @@ const form = useForm({
     notes: '',
 });
 
+// Apakah gudang asal sudah ditentukan (dari halaman detail warehouse)
+const isSourceLocked = computed(() => !!props.sourceWarehouse);
+
 watch(() => props.open, (val) => {
     if (val && props.sourceWarehouse) {
         form.from_warehouse_id = props.sourceWarehouse.id;
@@ -54,12 +56,27 @@ watch(() => props.open, (val) => {
 // ── Computed helpers ───────────────────────────────────────────
 
 const sourceData = computed(() => {
-    if (!props.sourceWarehouse) return null;
-    const currentStock = Number(props.sourceWarehouse.current_stock ?? 0);
-    const capacityMax = Number(props.sourceWarehouse.capacity_max ?? 0);
+    // Jika source di-lock dari prop
+    if (props.sourceWarehouse && isSourceLocked.value) {
+        const currentStock = Number(props.sourceWarehouse.current_stock ?? 0);
+        const capacityMax = Number(props.sourceWarehouse.capacity_max ?? 0);
+        const occupancy = capacityMax > 0 ? Math.round((currentStock / capacityMax) * 100) : 0;
+        return {
+            name: props.sourceWarehouse.name,
+            currentStock,
+            capacityMax,
+            occupancy,
+        };
+    }
+    // Jika user pilih sendiri dari dropdown
+    if (!form.from_warehouse_id) return null;
+    const wh = props.allWarehouses.find(w => w.id == form.from_warehouse_id);
+    if (!wh) return null;
+    const currentStock = Number(wh.current_stock ?? 0);
+    const capacityMax = Number(wh.capacity_max ?? 0);
     const occupancy = capacityMax > 0 ? Math.round((currentStock / capacityMax) * 100) : 0;
     return {
-        name: props.sourceWarehouse.name,
+        name: wh.name ?? wh.label,
         currentStock,
         capacityMax,
         occupancy,
@@ -81,6 +98,16 @@ const destinationData = computed(() => {
     };
 });
 
+// Filtered options: gudang tujuan tidak boleh sama dengan asal
+const destinationOptions = computed(() =>
+    props.allWarehouses.filter(w => w.id != form.from_warehouse_id)
+);
+
+// Filtered options: gudang asal tidak boleh sama dengan tujuan
+const sourceOptions = computed(() =>
+    props.allWarehouses.filter(w => w.id != form.to_warehouse_id)
+);
+
 const volumeNum = computed(() => {
     const v = Number(form.volume);
     return isNaN(v) || v <= 0 ? 0 : v;
@@ -94,6 +121,13 @@ const sourceAfter = computed(() => {
 const destAfter = computed(() => {
     if (!destinationData.value) return 0;
     return destinationData.value.currentStock + volumeNum.value;
+});
+
+// Reset tujuan jika asal berubah dan sama dengan tujuan
+watch(() => form.from_warehouse_id, (val) => {
+    if (val && val == form.to_warehouse_id) {
+        form.to_warehouse_id = '';
+    }
 });
 
 // ── Format helpers ─────────────────────────────────────────────
@@ -125,7 +159,7 @@ const selectClass = (hasError: boolean) => [
     'h-10 w-full rounded-lg border bg-white px-3 text-sm text-gray-700 appearance-none',
     'focus:border-[#007C95] focus:ring-1 focus:ring-[#007C95] focus:outline-none',
     hasError ? 'border-red-400' : 'border-gray-200',
-];
+].join(' ');
 </script>
 
 <template>
@@ -140,24 +174,49 @@ const selectClass = (hasError: boolean) => [
 
                 <!-- Row 1: Dari & Ke Warehouse -->
                 <div class="grid grid-cols-2 gap-4">
+
                     <!-- Dari Gudang (Asal) -->
                     <div class="flex flex-col gap-1.5">
                         <Label class="text-sm font-medium text-gray-700">Dari Gudang (Asal)</Label>
-                        <div
-                            class="h-10 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 flex items-center text-sm text-gray-700">
-                            <template v-if="sourceData">
-                                <span class="truncate">
+
+                        <!-- Locked: source warehouse sudah ditentukan -->
+                        <template v-if="isSourceLocked">
+                            <div
+                                class="h-10 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 flex items-center text-sm text-gray-700">
+                                <span v-if="sourceData" class="truncate">
                                     {{ sourceData.name }}
                                     <span class="text-gray-400">({{ formatNumber(sourceData.currentStock) }} kg ·</span>
                                     <span :class="occupancyColor(sourceData.occupancy)" class="font-medium">{{
                                         sourceData.occupancy }}%</span>
                                     <span class="text-gray-400">)</span>
                                 </span>
-                            </template>
-                            <template v-else>
-                                <span class="text-gray-400">Pilih warehouse</span>
-                            </template>
-                        </div>
+                                <span v-else class="text-gray-400">—</span>
+                            </div>
+                        </template>
+
+                        <!-- Selectable: user pilih sendiri -->
+                        <template v-else>
+                            <div class="relative">
+                                <select v-model="form.from_warehouse_id"
+                                    :class="selectClass(!!form.errors.from_warehouse_id)">
+                                    <option value="">Pilih gudang asal</option>
+                                    <option v-for="g in sourceOptions" :key="g.id" :value="g.id">{{ g.label }}</option>
+                                </select>
+                                <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                                    width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                    <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5"
+                                        stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </div>
+                            <!-- Source warehouse info -->
+                            <div v-if="sourceData" class="text-xs text-gray-400">
+                                {{ formatNumber(sourceData.currentStock) }} kg ·
+                                <span :class="occupancyColor(sourceData.occupancy)" class="font-medium">
+                                    {{ sourceData.occupancy }}%
+                                </span>
+                            </div>
+                        </template>
+
                         <span v-if="form.errors.from_warehouse_id" class="text-xs text-red-500">
                             {{ form.errors.from_warehouse_id }}
                         </span>
@@ -168,8 +227,9 @@ const selectClass = (hasError: boolean) => [
                         <Label class="text-sm font-medium text-gray-700">Ke Gudang (Tujuan)</Label>
                         <div class="relative">
                             <select v-model="form.to_warehouse_id" :class="selectClass(!!form.errors.to_warehouse_id)">
-                                <option value="">Select destination warehouse</option>
-                                <option v-for="g in allWarehouses" :key="g.id" :value="g.id">{{ g.label }}</option>
+                                <option value="">Pilih gudang tujuan</option>
+                                <option v-for="g in destinationOptions" :key="g.id" :value="g.id">{{ g.label }}
+                                </option>
                             </select>
                             <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
                                 width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -239,7 +299,8 @@ const selectClass = (hasError: boolean) => [
                         <div class="flex flex-col gap-1 text-[13px]">
                             <div class="flex items-center justify-between">
                                 <span class="text-gray-500">Stok saat ini</span>
-                                <span class="text-gray-800 font-medium">{{ formatNumber(sourceData.current_stock) }} kg</span>
+                                <span class="text-gray-800 font-medium">{{ formatNumber(sourceData.currentStock) }}
+                                    kg</span>
                             </div>
                             <div class="flex items-center justify-between">
                                 <span class="text-gray-500">Volume transfer</span>
@@ -294,7 +355,8 @@ const selectClass = (hasError: boolean) => [
                     @click="emit('update:open', false)">
                     Batal
                 </Button>
-                <Button :disabled="form.processing || !form.to_warehouse_id || volumeNum <= 0"
+                <Button
+                    :disabled="form.processing || !form.from_warehouse_id || !form.to_warehouse_id || volumeNum <= 0"
                     class="rounded-lg bg-[#007C95] text-white hover:bg-[#006b80] px-5" @click="handleSubmit">
                     {{ form.processing ? 'Memproses...' : 'Proses Transfer' }}
                 </Button>

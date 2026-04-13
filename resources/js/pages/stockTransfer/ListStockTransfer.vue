@@ -5,15 +5,15 @@ import {
     Plus,
     ChevronUp,
     ChevronDown,
-    ArrowRightLeft,
     EllipsisVertical,
     CheckCircle2,
     XCircle,
-    Clock,
     Truck,
 } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
+import { Vue3Lottie } from 'vue3-lottie';
+import emptyAnimation from '@/../../public/assets/animations/Pencarian Tidak Ditemukan.json';
 
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
@@ -27,7 +27,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import StockTransferFormModal from '@/components/StockTransfer/StockTransferFormModal.vue';
+import { Button } from '@/components/ui/button';
+import WarehouseTransferModal from '@/components/Warehouse/WarehouseTransferModal.vue';
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -66,6 +67,11 @@ interface WarehouseCard {
 interface WarehouseOption {
     id: number;
     label: string;
+    name?: string;
+    code?: string;
+    current_stock?: number;
+    capacity_max?: number;
+    occupancy?: number;
 }
 
 interface Paginated<T> {
@@ -108,7 +114,7 @@ const props = defineProps<{
 // ── Breadcrumbs ────────────────────────────────────────────────
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Stock Transfer', href: '/stock-transfer' },
+    { title: 'Transfer Stok', href: '/stock-transfer' },
 ];
 
 // ── State ──────────────────────────────────────────────────────
@@ -129,11 +135,11 @@ const filterFields = [
         ],
     },
     {
-        key: 'from_warehouse_id', label: 'From Warehouse', type: 'select' as const,
+        key: 'from_warehouse_id', label: 'Dari Gudang', type: 'select' as const,
         options: props.allWarehouses.map(w => ({ label: w.label, value: String(w.id) })),
     },
     {
-        key: 'to_warehouse_id', label: 'To Warehouse', type: 'select' as const,
+        key: 'to_warehouse_id', label: 'Ke Gudang', type: 'select' as const,
         options: props.allWarehouses.map(w => ({ label: w.label, value: String(w.id) })),
     },
 ];
@@ -199,23 +205,36 @@ watch(perPage, () => {
 // ── Transfer Form Modal ─────────────────────────────────────────
 
 const isFormOpen = ref(false);
+const transferSourceWarehouse = ref<WarehouseCard | null>(null);
+
+/** Buka modal TANPA pre-select gudang asal (tombol header) */
+function openTransferNew() {
+    transferSourceWarehouse.value = null;
+    isFormOpen.value = true;
+}
+
+/** Buka modal DENGAN pre-select gudang asal (klik card gudang) */
+function openTransferFrom(warehouse: WarehouseCard) {
+    transferSourceWarehouse.value = warehouse;
+    isFormOpen.value = true;
+}
 
 // ── Status Update ──────────────────────────────────────────────
 
 function updateStatus(transfer: Transfer, status: string) {
     router.patch(`/stock-transfer/${transfer.id}/status`, { status }, {
         preserveScroll: true,
-        onSuccess: () => toast.success('Status updated successfully.'),
-        onError: () => toast.error('Failed to update status.'),
+        onSuccess: () => toast.success('Berhasil!', { description: 'Status transfer berhasil diperbarui' }),
+        onError: () => toast.error('Gagal!', { description: 'Gagal memperbarui status transfer' }),
     });
 }
 
 function deleteTransfer(transfer: Transfer) {
-    if (!confirm(`Delete transfer ${transfer.transfer_number}?`)) return;
+    if (!confirm(`Hapus transfer ${transfer.transfer_number}?`)) return;
     router.delete(`/stock-transfer/${transfer.id}`, {
         preserveScroll: true,
-        onSuccess: () => toast.success('Transfer deleted.'),
-        onError: () => toast.error('Failed to delete transfer.'),
+        onSuccess: () => toast.success('Berhasil!', { description: 'Transfer berhasil dihapus' }),
+        onError: () => toast.error('Gagal!', { description: 'Gagal menghapus transfer' }),
     });
 }
 
@@ -224,24 +243,32 @@ function deleteTransfer(transfer: Transfer) {
 function occupancyBarColor(pct: number) {
     if (pct >= 90) return 'bg-red-500';
     if (pct >= 70) return 'bg-amber-400';
-    return 'bg-[#007C95]';
+    return 'bg-emerald-400';
 }
 
-function occupancyTextColor(pct: number) {
-    if (pct >= 90) return 'text-red-600';
-    if (pct >= 70) return 'text-amber-600';
-    return 'text-[#007C95]';
+function statusBadgeColor(status_color: string) {
+    const map: Record<string, string> = {
+        rose: 'bg-rose-50 text-rose-600 border border-rose-200',
+        red: 'bg-rose-50 text-rose-600 border border-rose-200',
+        amber: 'bg-amber-50 text-amber-700 border border-amber-200',
+        emerald: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+    };
+    return map[status_color] ?? 'bg-gray-100 text-gray-600 border border-gray-200';
 }
 
-const statusBadge: Record<string, string> = {
-    'Completed': 'bg-emerald-50 text-emerald-700',
-    'In Transit': 'bg-blue-50 text-blue-700',
-    'Pending': 'bg-amber-50 text-amber-700',
-    'Cancelled': 'bg-rose-50 text-rose-600',
+const transferStatusBadge: Record<string, string> = {
+    'Completed': 'text-emerald-600',
+    'In Transit': 'text-amber-600',
+    'Pending': 'text-blue-600',
+    'Cancelled': 'text-rose-600',
 };
 
 function formatVolume(val: number) {
     return new Intl.NumberFormat('id-ID').format(val) + ' kg';
+}
+
+function formatNumber(val: number) {
+    return new Intl.NumberFormat('id-ID').format(val);
 }
 
 const sortClass = (col: string) =>
@@ -253,154 +280,116 @@ const chevronClass = (col: string, dir: 'asc' | 'desc') =>
 
 <template>
 
-    <Head title="Stock Transfer" />
+    <Head title="Transfer Stok" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-col gap-6 p-4 pb-10 md:p-6">
 
             <!-- ── Header ──────────────────────────────────── -->
             <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                <div>
-                    <h1 class="text-[24px] font-bold text-gray-900">Stock Transfer</h1>
-                    <p class="mt-0.5 text-[16px] text-gray-500">Move stock between warehouses</p>
+                <div class="flex-1 min-w-0">
+                    <h1 class="text-[24px] font-bold text-gray-900">Transfer Stok</h1>
+                    <p class="mt-0.5 text-[16px] text-gray-500">Pindahkan stok antar gudang</p>
                 </div>
-                <button
-                    class="flex w-fit items-center gap-1.5 rounded-lg bg-[#007C95] px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-[#006b80] transition"
-                    @click="isFormOpen = true">
-                    <Plus class="size-4" />
-                    Transfer Stock
-                </button>
-            </div>
 
-            <!-- ── Stat Cards ──────────────────────────────── -->
-            <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <div class="bg-white rounded-xl border border-[#EDEDED] shadow-sm p-4 flex flex-col gap-1">
-                    <span class="text-[13px] font-semibold text-[#101010]">Total Transfers</span>
-                    <p class="text-[24px] font-bold tracking-tight text-[#101010]">{{ stats.total }}</p>
-                </div>
-                <div class="bg-white rounded-xl border border-[#EDEDED] shadow-sm p-4 flex flex-col gap-1">
-                    <div class="flex items-center gap-1.5">
-                        <Clock class="size-3.5 text-amber-500" />
-                        <span class="text-[13px] font-semibold text-[#101010]">Pending</span>
-                    </div>
-                    <p class="text-[24px] font-bold tracking-tight text-amber-600">{{ stats.pending }}</p>
-                </div>
-                <div class="bg-white rounded-xl border border-[#EDEDED] shadow-sm p-4 flex flex-col gap-1">
-                    <div class="flex items-center gap-1.5">
-                        <Truck class="size-3.5 text-blue-500" />
-                        <span class="text-[13px] font-semibold text-[#101010]">In Transit</span>
-                    </div>
-                    <p class="text-[24px] font-bold tracking-tight text-blue-600">{{ stats.in_transit }}</p>
-                </div>
-                <div class="bg-white rounded-xl border border-[#EDEDED] shadow-sm p-4 flex flex-col gap-1">
-                    <div class="flex items-center gap-1.5">
-                        <CheckCircle2 class="size-3.5 text-emerald-500" />
-                        <span class="text-[13px] font-semibold text-[#101010]">Completed</span>
-                    </div>
-                    <p class="text-[24px] font-bold tracking-tight text-emerald-600">{{ stats.completed }}</p>
+                <div class="flex w-full justify-end md:w-auto md:flex-shrink-0">
+                    <Button
+                        class="flex w-fit items-center justify-center gap-1.5 rounded-lg bg-[#007C95] px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-[#006b80]"
+                        @click="openTransferNew">
+                        <Plus class="size-4" />
+                        Transfer Stok
+                    </Button>
                 </div>
             </div>
 
-            <!-- ── Warehouse Cards ─────────────────────────── -->
+            <!-- ── List Gudang ─────────────────────────────── -->
             <div>
-                <h2 class="text-[16px] font-semibold text-gray-800 mb-3">Warehouse List</h2>
+                <h2 class="text-[16px] font-semibold text-gray-900 mb-3">List Gudang</h2>
 
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     <div v-for="warehouse in warehouses.data" :key="warehouse.id"
-                        class="flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm p-4 gap-2">
+                        class="flex flex-col rounded-xl border border-[#EDEDED] bg-white shadow-sm p-4 gap-3 cursor-pointer hover:shadow-md hover:border-[#007C95]/30 transition"
+                        @click="openTransferFrom(warehouse)">
 
-                        <!-- Name & Location -->
-                        <div class="flex items-start justify-between gap-2">
-                            <div class="min-w-0">
-                                <p class="text-[13px] font-semibold text-gray-900 truncate">{{ warehouse.name }}</p>
-                                <p class="text-[11px] text-gray-400 truncate mt-0.5">
-                                    {{ warehouse.address ?? warehouse.city_name ?? '—' }}
-                                </p>
-                            </div>
+                        <!-- Name & Address -->
+                        <div class="min-w-0">
+                            <p class="text-[14px] font-semibold text-[#101010] truncate">{{ warehouse.name }}</p>
+                            <p class="text-[12px] text-gray-400 truncate mt-0.5">
+                                {{ warehouse.address ?? warehouse.city_name ?? '—' }}
+                            </p>
                         </div>
 
                         <!-- Status Badge -->
                         <span class="w-fit inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold"
-                            :class="{
-                                'bg-rose-50 text-rose-600': warehouse.status_color === 'rose' || warehouse.status_color === 'red',
-                                'bg-amber-50 text-amber-700': warehouse.status_color === 'amber',
-                                'bg-emerald-50 text-emerald-700': warehouse.status_color === 'emerald',
-                            }">
+                            :class="statusBadgeColor(warehouse.status_color)">
                             {{ warehouse.status_label }}
                         </span>
 
                         <!-- Progress Bar -->
                         <div>
-                            <div class="flex items-center justify-between mb-1">
-                                <span class="text-[12px] font-bold text-gray-800">
-                                    {{ new Intl.NumberFormat('id-ID').format(warehouse.current_stock) }} kg
-                                    <span :class="occupancyTextColor(warehouse.occupancy)"
-                                        class="text-[11px] font-semibold ml-0.5">
-                                        ({{ warehouse.occupancy }}%)
-                                    </span>
-                                </span>
-                                <span class="text-[11px] text-gray-400">
-                                    {{ new Intl.NumberFormat('id-ID').format(warehouse.capacity_max) }}&thinsp;kg
-                                </span>
-                            </div>
-                            <div class="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
-                                <div class="h-1.5 rounded-full transition-all"
+                            <div class="h-2 w-full rounded-full bg-gray-100 overflow-hidden">
+                                <div class="h-2 rounded-full transition-all"
                                     :class="occupancyBarColor(warehouse.occupancy)"
-                                    :style="{ width: warehouse.occupancy + '%' }" />
+                                    :style="{ width: Math.min(warehouse.occupancy, 100) + '%' }" />
+                            </div>
+                            <div class="flex items-center justify-between mt-1.5">
+                                <span class="text-[12px] font-medium text-[#101010]">
+                                    {{ formatNumber(warehouse.current_stock) }} kg ({{ warehouse.occupancy }}%)
+                                </span>
+                                <span class="text-[12px] text-gray-400">
+                                    {{ formatNumber(warehouse.capacity_max) }} kg
+                                </span>
                             </div>
                         </div>
                     </div>
 
                     <div v-if="warehouses.data.length === 0" class="col-span-full py-10 text-center">
-                        <p class="text-sm text-gray-400">No warehouses found.</p>
+                        <p class="text-sm text-gray-400">Tidak ada data gudang</p>
                     </div>
                 </div>
 
-                <!-- Warehouse Pagination -->
                 <TablePagination :paginator="warehouses" type="centerPaginate" @navigate="navigateWarehouse" />
             </div>
 
-            <!-- ── Transfer History Table ──────────────────── -->
+            <!-- ── Riwayat Transfer Stok ───────────────────── -->
             <div>
-                <h2 class="text-[16px] font-semibold text-gray-800 mb-3">Stock Transfer History</h2>
+                <h2 class="text-[16px] font-semibold text-gray-900 mb-3">Riwayat Transfer Stok</h2>
 
                 <!-- Toolbar -->
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
                     <div class="flex items-center gap-2">
                         <select v-model="perPage"
-                            class="h-[40px] w-16 rounded-lg border border-gray-300 bg-white px-2 text-sm text-gray-700 focus:border-[#007C95] focus:ring-1 focus:ring-[#007C95] focus:outline-none">
+                            class="h-[45px] w-16 rounded-lg border border-gray-300 bg-white px-2 text-sm text-gray-700 focus:border-[#007C95] focus:ring-1 focus:ring-[#007C95] focus:outline-none">
                             <option :value="10">10</option>
                             <option :value="25">25</option>
                             <option :value="50">50</option>
                         </select>
-                        <span class="text-sm text-gray-500">Entries per page</span>
+                        <span class="text-sm text-gray-500">Entri per halaman</span>
                     </div>
 
                     <div class="flex items-center gap-2">
                         <TableFilter :filters="filterFields" :model-value="filterValues"
                             @update:model-value="handleFilter" @reset="handleFilterReset" />
-                        <div class="relative">
+                        <div class="relative flex-1 sm:flex-none">
                             <Search class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-gray-400" />
-                            <input v-model="searchQuery" type="text" placeholder="Search..."
-                                class="h-[40px] w-full rounded-lg border border-gray-300 bg-white py-2 pr-3 pl-9 text-sm placeholder-gray-400 focus:border-[#007C95] focus:ring-1 focus:ring-[#007C95] focus:outline-none sm:w-52" />
+                            <input v-model="searchQuery" type="text" placeholder="Cari..."
+                                class="h-[45px] w-full rounded-lg border border-gray-300 bg-white py-2 pr-3 pl-9 text-sm placeholder-gray-400 focus:border-[#007C95] focus:ring-1 focus:ring-[#007C95] focus:outline-none sm:w-56" />
                         </div>
                     </div>
                 </div>
 
                 <!-- Table -->
-                <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                <div class="overflow-hidden rounded-xl border-gray-200 bg-white">
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm">
                             <thead>
                                 <tr class="border-b border-gray-200 bg-[#F9F9F9]">
-
-                                    <!-- Transfer No -->
                                     <th class="px-4 py-3 text-left">
                                         <button
                                             class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition"
                                             :class="sortClass('transfer_number')"
                                             @click="handleSort('transfer_number')">
-                                            Transfer No
+                                            No Transfer
                                             <span class="flex flex-col">
                                                 <ChevronUp class="size-3 -mb-0.5"
                                                     :class="chevronClass('transfer_number', 'asc')" />
@@ -409,13 +398,11 @@ const chevronClass = (col: string, dir: 'asc' | 'desc') =>
                                             </span>
                                         </button>
                                     </th>
-
-                                    <!-- Date -->
                                     <th class="px-4 py-3 text-left">
                                         <button
                                             class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition"
                                             :class="sortClass('transferred_at')" @click="handleSort('transferred_at')">
-                                            Date
+                                            Tanggal
                                             <span class="flex flex-col">
                                                 <ChevronUp class="size-3 -mb-0.5"
                                                     :class="chevronClass('transferred_at', 'asc')" />
@@ -424,20 +411,34 @@ const chevronClass = (col: string, dir: 'asc' | 'desc') =>
                                             </span>
                                         </button>
                                     </th>
-
-                                    <!-- From Warehouse -->
                                     <th class="px-4 py-3 text-left">
-                                        <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">From
-                                            Warehouse</span>
+                                        <button
+                                            class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition"
+                                            :class="sortClass('from_warehouse_name')"
+                                            @click="handleSort('from_warehouse_name')">
+                                            Dari Gudang
+                                            <span class="flex flex-col">
+                                                <ChevronUp class="size-3 -mb-0.5"
+                                                    :class="chevronClass('from_warehouse_name', 'asc')" />
+                                                <ChevronDown class="size-3 -mt-0.5"
+                                                    :class="chevronClass('from_warehouse_name', 'desc')" />
+                                            </span>
+                                        </button>
                                     </th>
-
-                                    <!-- To Warehouse -->
                                     <th class="px-4 py-3 text-left">
-                                        <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">To
-                                            Warehouse</span>
+                                        <button
+                                            class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition"
+                                            :class="sortClass('to_warehouse_name')"
+                                            @click="handleSort('to_warehouse_name')">
+                                            Ke Gudang
+                                            <span class="flex flex-col">
+                                                <ChevronUp class="size-3 -mb-0.5"
+                                                    :class="chevronClass('to_warehouse_name', 'asc')" />
+                                                <ChevronDown class="size-3 -mt-0.5"
+                                                    :class="chevronClass('to_warehouse_name', 'desc')" />
+                                            </span>
+                                        </button>
                                     </th>
-
-                                    <!-- Volume -->
                                     <th class="px-4 py-3 text-left">
                                         <button
                                             class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition"
@@ -451,8 +452,6 @@ const chevronClass = (col: string, dir: 'asc' | 'desc') =>
                                             </span>
                                         </button>
                                     </th>
-
-                                    <!-- Status -->
                                     <th class="px-4 py-3 text-left">
                                         <button
                                             class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition"
@@ -466,56 +465,39 @@ const chevronClass = (col: string, dir: 'asc' | 'desc') =>
                                             </span>
                                         </button>
                                     </th>
-
-                                    <!-- Actions -->
-                                    <th class="px-4 py-3 w-[50px]"></th>
+                                    <th class="px-4 py-3 text-left w-[50px]">
+                                        <span
+                                            class="text-xs font-semibold uppercase tracking-wider text-gray-500">Aksi</span>
+                                    </th>
                                 </tr>
                             </thead>
 
                             <tbody class="divide-y divide-gray-100">
                                 <tr v-for="transfer in transfers.data" :key="transfer.id"
                                     class="transition hover:bg-gray-50/60">
-
-                                    <!-- Transfer No -->
                                     <td class="px-4 py-3 whitespace-nowrap">
-                                        <span class="font-mono text-xs font-semibold text-gray-700">
-                                            {{ transfer.transfer_number }}
-                                        </span>
+                                        <span class="font-mono text-xs text-gray-500">{{ transfer.transfer_number
+                                            }}</span>
                                     </td>
-
-                                    <!-- Date -->
-                                    <td class="px-4 py-3 whitespace-nowrap text-gray-500 text-[13px]">
+                                    <td class="px-4 py-3 whitespace-nowrap text-[13px] text-gray-500">
                                         {{ transfer.transferred_at }}
                                     </td>
-
-                                    <!-- From Warehouse -->
-                                    <td class="px-4 py-3 whitespace-nowrap">
-                                        <p class="text-[13px] font-medium text-gray-900">{{ transfer.from_warehouse_name
-                                            }}</p>
+                                    <td class="px-4 py-3 whitespace-nowrap text-[13px] text-gray-900">
+                                        {{ transfer.from_warehouse_name }}
                                     </td>
-
-                                    <!-- To Warehouse -->
-                                    <td class="px-4 py-3 whitespace-nowrap">
-                                        <p class="text-[13px] font-medium text-gray-900">{{ transfer.to_warehouse_name
-                                            }}</p>
+                                    <td class="px-4 py-3 whitespace-nowrap text-[13px] text-gray-900">
+                                        {{ transfer.to_warehouse_name }}
                                     </td>
-
-                                    <!-- Volume -->
-                                    <td class="px-4 py-3 whitespace-nowrap text-gray-700 text-[13px] font-medium">
+                                    <td class="px-4 py-3 whitespace-nowrap text-[13px] text-gray-700">
                                         {{ formatVolume(transfer.volume) }}
                                     </td>
-
-                                    <!-- Status -->
                                     <td class="px-4 py-3 whitespace-nowrap">
-                                        <span
-                                            class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                                            :class="statusBadge[transfer.status] ?? 'bg-gray-100 text-gray-600'">
+                                        <span class="text-[13px] font-medium"
+                                            :class="transferStatusBadge[transfer.status] ?? 'text-gray-600'">
                                             {{ transfer.status }}
                                         </span>
                                     </td>
-
-                                    <!-- Actions -->
-                                    <td class="px-4 py-3 whitespace-nowrap">
+                                    <td class="px-4 py-3 whitespace-nowrap w-[50px]">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger as-child>
                                                 <button
@@ -528,16 +510,14 @@ const chevronClass = (col: string, dir: 'asc' | 'desc') =>
                                                     <DropdownMenuItem
                                                         class="gap-2 text-sm text-blue-600 focus:text-blue-600"
                                                         @click="updateStatus(transfer, 'In Transit')">
-                                                        <Truck class="size-3.5" />
-                                                        Mark as In Transit
+                                                        <Truck class="size-3.5" /> Tandai In Transit
                                                     </DropdownMenuItem>
                                                 </template>
                                                 <template v-if="transfer.status === 'In Transit'">
                                                     <DropdownMenuItem
                                                         class="gap-2 text-sm text-emerald-600 focus:text-emerald-600"
                                                         @click="updateStatus(transfer, 'Completed')">
-                                                        <CheckCircle2 class="size-3.5" />
-                                                        Mark as Completed
+                                                        <CheckCircle2 class="size-3.5" /> Tandai Completed
                                                     </DropdownMenuItem>
                                                 </template>
                                                 <template
@@ -545,14 +525,13 @@ const chevronClass = (col: string, dir: 'asc' | 'desc') =>
                                                     <DropdownMenuItem
                                                         class="gap-2 text-sm text-rose-600 focus:text-rose-600"
                                                         @click="updateStatus(transfer, 'Cancelled')">
-                                                        <XCircle class="size-3.5" />
-                                                        Cancel Transfer
+                                                        <XCircle class="size-3.5" /> Batalkan Transfer
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator />
                                                     <DropdownMenuItem
                                                         class="gap-2 text-sm text-red-600 focus:text-red-600"
                                                         @click="deleteTransfer(transfer)">
-                                                        Delete
+                                                        Hapus
                                                     </DropdownMenuItem>
                                                 </template>
                                             </DropdownMenuContent>
@@ -560,13 +539,14 @@ const chevronClass = (col: string, dir: 'asc' | 'desc') =>
                                     </td>
                                 </tr>
 
-                                <!-- Empty State -->
                                 <tr v-if="transfers.data.length === 0">
-                                    <td colspan="7" class="px-5 py-12 text-center">
+                                    <td colspan="7" class="px-5 py-10 text-center">
                                         <div class="flex flex-col items-center gap-2">
-                                            <ArrowRightLeft class="size-10 text-gray-200" />
-                                            <p class="text-sm font-medium text-gray-500">No transfer records found</p>
-                                            <p class="text-xs text-gray-400">Try adjusting your search or filters</p>
+                                            <Vue3Lottie :animationData="emptyAnimation" :height="160" :width="160"
+                                                :loop="true" />
+                                            <p class="text-sm font-medium text-gray-600">Tidak ada data transfer</p>
+                                            <p class="text-xs text-gray-400">Coba ubah kata kunci pencarian atau filter
+                                            </p>
                                         </div>
                                     </td>
                                 </tr>
@@ -575,15 +555,15 @@ const chevronClass = (col: string, dir: 'asc' | 'desc') =>
                     </div>
                 </div>
 
-                <!-- Transfer Pagination -->
                 <TablePagination :paginator="transfers" @navigate="navigateTransfer" />
-
             </div>
+
         </div>
 
         <!-- ── Transfer Form Modal ────────────────────────── -->
-        <StockTransferFormMoebdal v-model:open="isFormOpen" :all-warehouses="allWarehouses" post-url="/stock-transfer"
-            @success="toast.success('Transfer recorded successfully!')" />
+        <WarehouseTransferModal v-model:open="isFormOpen" :source-warehouse="transferSourceWarehouse"
+            :all-warehouses="allWarehouses" transfer-url="/stock-transfer"
+            @success="toast.success('Berhasil!', { description: 'Transfer stok berhasil dicatat' })" />
 
     </AppLayout>
 </template>
